@@ -4,26 +4,39 @@ var userFollows = [];
 var liveUserFollows = [];
 var needToUpdateFrontEnd = false;
 
+var followsUpdateInProgress = false;
+var liveStreamsUpdateInProgress = false;
+var liveStreamsChecked = 0;
+
 const client_id = "27rv0a65hae3sjvuf8k978phqhwy8v";
 const updateInterval = 2 * 60 * 1000;
 
 
 function run() {
-    userFollows = [];
     updateFollowers();
-    sleep(5000).then(() => {
-        console.log("finished downloading followers");
-        liveUserFollows = []
-        updateLiveStreams();
-    });
-    sleep(4000).then(() => {
-        console.log("finished checking live streams");
-        needToUpdateFrontEnd = true;
-    });
-}
+    var checkFollowsUpdateProgress = setInterval(
+        function() {
+            if(followsUpdateInProgress == false) {
+                clearInterval(checkFollowsUpdateProgress);
+                console.log("finished downloading followers");
 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+                updateLiveStreams();
+                var checkLiveStreamsUpdateProgress = setInterval(
+                    function() {
+                        if(liveStreamsUpdateInProgress == false) {
+                            clearInterval(checkLiveStreamsUpdateProgress);
+                            console.log("finished checking live streams");
+                            console.log(liveUserFollows);
+                            console.log(userFollows);
+                            needToUpdateFrontEnd = true;
+                        }
+                    },
+                    100
+                );
+            }
+        },
+        100
+    );
 }
 
 function getLiveStreamCount() {
@@ -31,10 +44,15 @@ function getLiveStreamCount() {
 }
 
 function updateFollowers() {
+    userFollows = [];
+    followsUpdateInProgress = true;
     getFollows(userUrl, getFollowsResponseHandler);
 }
 
 function updateLiveStreams() {
+    liveUserFollows = []
+    liveStreamsUpdateInProgress = true;
+    liveStreamsChecked = 0;
     for(streamIndex = 0; streamIndex < userFollows.length; streamIndex++) {
         checkOnlineStatus(userFollows[streamIndex].channel.name, checkOnlineStatusResponseHandler);
     }
@@ -71,6 +89,10 @@ function checkOnlineStatusResponseHandler(jsonResponse) {
     if(jsonResponse.stream != null) {
         liveUserFollows.push(jsonResponse.stream);
     }
+    liveStreamsChecked++;
+    if(liveStreamsChecked == userFollows.length) {
+        liveStreamsUpdateInProgress = false;
+    }
 }
 
 function getFollowsResponseHandler(jsonResponse)
@@ -79,7 +101,9 @@ function getFollowsResponseHandler(jsonResponse)
         addFollowsToList(jsonResponse.follows);
         getFollows(jsonResponse._links.next, getFollowsResponseHandler);
     }
-    //console.log(userFollows);
+    else {
+        followsUpdateInProgress = false;
+    }
 }
 
 function addFollowsToList(follows)

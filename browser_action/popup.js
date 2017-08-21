@@ -17,7 +17,6 @@ function run() {
 }
 
 console.log("frontend updataing");
-
 run();
 var intervalID = setInterval(
     function() {
