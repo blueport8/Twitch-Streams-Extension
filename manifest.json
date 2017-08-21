@@ -1,0 +1,31 @@
+{
+    "manifest_version": 2,
+    "name": "Twitch Streams",
+    "version": "0.1",
+    "description": "Twitch followed streams browser, notifier",
+
+    "applications": {
+        "gecko": {
+            "id": "twitch_streams@example.com",
+            "strict_min_version": "45.0"
+        }
+    },
+
+    "icons": {
+        "48": "icons/twitch-48.png",
+        "96": "icons/twitch-96.png"
+    },
+
+    "browser_action": {
+        "default_icon": {
+            "19": "icons/twitch-19.png",
+            "38": "icons/twitch-38.png"
+        },
+        "default_title": "Twitch Streams",
+        "default_popup": "browser_action/index.html"
+    },
+
+    "background": {
+        "scripts": ["background/background.js"]
+    }
+}
