@@ -43,6 +43,10 @@ function getLiveStreamCount() {
     return liveUserFollows.length;
 }
 
+function updateInProgress() {
+    return (followsUpdateInProgress || liveStreamsUpdateInProgress);
+}
+
 function updateFollowers() {
     userFollows = [];
     followsUpdateInProgress = true;
