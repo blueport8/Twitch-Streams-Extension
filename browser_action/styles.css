@@ -1,0 +1,7 @@
+.flex_row {
+    display: flex;
+}
+
+.flex_row div {
+    padding: 3px;
+}
