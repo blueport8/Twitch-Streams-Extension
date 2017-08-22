@@ -1,7 +1,25 @@
+body {
+    margin: 0px;
+}
 .flex_row {
     display: flex;
 }
 
-.flex_row div {
+/* .flex_row div {
     padding: 3px;
+} */
+
+.tab {
+    padding: 10px;
+    background: #6441a4;
+    color: #FFFFFF;
+    border-radius: 2px 2px 10px 10px;
+}
+
+.follows_tab {
+    margin-right: 5px;
+}
+
+.settings_tab {
+    margin-right: 5px;
 }
