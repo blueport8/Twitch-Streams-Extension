@@ -6,19 +6,29 @@
     </head>
     <body>
         <div class="flex_row">
-            <div class="tab follows_tab">
+            <div class="tab tab_left follows_tab">
                 <img src="images/twitch_logo.svg" width="18px"></img> Follows
             </div>
-            <div class="tab settings_tab">
+            <div class="tab tab_right settings_tab">
                 <img src="images/wrench.svg" width="18px"></img> Settings
             </div>
-            <div>
+            <div class="tab refresh_button">
                 <img src="images/refresh_twitch.svg" width="20px"></img>
             </div>
         </div>
-        <div class="flex_row">
-            <div>Active streams: </div>
-            <div id="active_stream_count">0</div>
+        <div class="flex_row statistics">
+            <div class="flex_row live_count">
+                <img src="images/live_dot.svg" width="10px" height="10px"></img>
+                <div class="stat_caption">Live:</div> 
+                <div id="active_stream_count">0</div>
+            </div>
+            <div class="flex_row followed_streams">
+                <svg height="16px" version="1.1" viewBox="0 0 16 16" width="16px" x="0px" y="0px" class="followed_heart">
+                    <path clip-rule="evenodd" d="M8,14L1,7V4l2-2h3l2,2l2-2h3l2,2v3L8,14z" fill-rule="evenodd"></path>
+                </svg>                 
+                <div class="stat_caption">Follows:</div>
+                <div id="followed_stream_count">0</div>
+            </div>
         </div>
         <div class="flex_row">
             <div>[Debug] Update in progress: </div>
