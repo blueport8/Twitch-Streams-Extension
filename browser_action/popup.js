@@ -37,18 +37,19 @@ function updateFrontend() {
 
 function updateEventListeners() {
     var links = document.getElementsByClassName("stream_link");
-    console.log(links);
     for(linkIndex = 0; linkIndex < links.length; linkIndex++) {
         var link = links[linkIndex];
         var channel_name_list = link.getElementsByClassName("channel_name");
         var channel_name = channel_name_list[0];
-        console.log("adding event listener for: " + channel_name.innerHTML);
-        link.onclick = function() {
-            openStream(channel_name.innerHTML);
-        }
+
+        link.onclick = (function() {
+            var local_channel_name = channel_name.innerHTML;
+            return function() {
+                openStream(local_channel_name);
+            }
+        })();
     }
 }
-
 
 function openStream(channel_name) {
     console.log("opening: " + channel_name);
