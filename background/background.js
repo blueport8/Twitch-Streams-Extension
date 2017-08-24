@@ -47,6 +47,14 @@ function getFollowsCount() {
     return userFollows.length;
 }
 
+function getLiveStreams() {
+    var liveStreams = "";
+    for(streamIndex = 0; streamIndex < liveUserFollows.length; streamIndex++) {
+        liveStreams += getLiveStream(liveUserFollows[streamIndex].channel);
+    }
+    return liveStreams;
+}
+
 function updateInProgress() {
     return (followsUpdateInProgress || liveStreamsUpdateInProgress);
 }

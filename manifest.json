@@ -26,6 +26,6 @@
     },
 
     "background": {
-        "scripts": ["background/background.js"]
+        "scripts": ["background/stream_wrapper.js","background/background.js"]
     }
 }

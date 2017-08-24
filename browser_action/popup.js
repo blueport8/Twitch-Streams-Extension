@@ -3,6 +3,7 @@ const updateInterval = 30 * 1000;
 //var followers = document.getElementById("follows");
 var active_stream_count = document.getElementById("active_stream_count");
 var follower_count = document.getElementById("followed_stream_count");
+var live_streams = document.getElementById("live_stream_container");
 var debug_data = document.getElementById("debug");
 
 var backendPage = browser.extension.getBackgroundPage();
@@ -16,20 +17,45 @@ function run() {
                 debug_data.innerHTML = backendPage.updateInProgress();
                 if(!backendPage.updateInProgress()) {
                     clearInterval(updateIntervalID);
-                    updateFollows();
+                    updateFrontend();
                 }
             },
             1000
         );
     }
     else {
-        updateFollows();
+        updateFrontend();
     }
 }
 
-function updateFollows() {
+function updateFrontend() {
     active_stream_count.innerHTML = backendPage.getLiveStreamCount();
     follower_count.innerHTML = backendPage.getFollowsCount();
+    live_streams.innerHTML = backendPage.getLiveStreams();
+    updateEventListeners();
+}
+
+function updateEventListeners() {
+    var links = document.getElementsByClassName("stream_link");
+    console.log(links);
+    for(linkIndex = 0; linkIndex < links.length; linkIndex++) {
+        var link = links[linkIndex];
+        var channel_name_list = link.getElementsByClassName("channel_name");
+        var channel_name = channel_name_list[0];
+        console.log("adding event listener for: " + channel_name.innerHTML);
+        link.onclick = function() {
+            openStream(channel_name.innerHTML);
+        }
+    }
+}
+
+
+function openStream(channel_name) {
+    console.log("opening: " + channel_name);
+    browser.tabs.create({
+        url:"https://twitch.tv/" + channel_name,
+        active: true
+    });
 }
 
 console.log("frontend updataing");
