@@ -8,6 +8,11 @@ var debug_data = document.getElementById("debug");
 
 var backendPage = browser.extension.getBackgroundPage();
 
+function onFirstRun() {
+    browser.browserAction.setBadgeText({text: "0"});
+    browser.browserAction.setBadgeBackgroundColor({color: "#6441A4"})
+}
+
 function run() {
     debug_data.innerHTML = backendPage.updateInProgress();
     if(backendPage.updateInProgress()) {
@@ -33,6 +38,7 @@ function updateFrontend() {
     follower_count.innerHTML = backendPage.getFollowsCount();
     live_streams.innerHTML = backendPage.getLiveStreams();
     updateEventListeners();
+    updateBadge();
 }
 
 function updateEventListeners() {
@@ -59,6 +65,12 @@ function openStream(channel_name) {
     });
 }
 
+function updateBadge(){
+    console.log("badge text set");
+    browser.browserAction.setBadgeText({text: (backendPage.getLiveStreamCount()).toString()});
+}
+
+onFirstRun();
 console.log("frontend updataing");
 run();
 var intervalID = setInterval(
