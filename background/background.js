@@ -11,6 +11,10 @@ var liveStreamsChecked = 0;
 const client_id = "27rv0a65hae3sjvuf8k978phqhwy8v";
 const updateInterval = 2 * 60 * 1000;
 
+function onFirstRun() {
+    browser.browserAction.setBadgeText({text: "0"});
+    browser.browserAction.setBadgeBackgroundColor({color: "#6441A4"})
+}
 
 function run() {
     updateFollowers();
@@ -28,6 +32,7 @@ function run() {
                             console.log("finished checking live streams");
                             console.log(liveUserFollows);
                             console.log(userFollows);
+                            updateBadge();
                             needToUpdateFrontEnd = true;
                         }
                     },
@@ -53,6 +58,11 @@ function getLiveStreams() {
         liveStreams += getLiveStream(liveUserFollows[streamIndex].channel);
     }
     return liveStreams;
+}
+
+function updateBadge(){
+    console.log("badge text updated");
+    browser.browserAction.setBadgeText({text: (getLiveStreamCount()).toString()});
 }
 
 function updateInProgress() {
@@ -130,6 +140,7 @@ function addFollowsToList(follows)
 }
 
 console.log("backend updating");
+onFirstRun();
 run();
 var intervalID = setInterval(
     function() {
