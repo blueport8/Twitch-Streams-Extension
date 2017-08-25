@@ -2,6 +2,8 @@ body {
     background: #f4f4f4;
     width: 370px;
     margin: 0px;
+    overflow-y: scroll;
+    overflow-x: hidden;
 }
 .flex_row {
     display: flex;

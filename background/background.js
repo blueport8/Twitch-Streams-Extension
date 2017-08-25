@@ -6,6 +6,7 @@ var needToUpdateFrontEnd = false;
 
 var followsUpdateInProgress = false;
 var liveStreamsUpdateInProgress = false;
+var lastUpdateDate = "";
 var liveStreamsChecked = 0;
 
 const client_id = "27rv0a65hae3sjvuf8k978phqhwy8v";
@@ -30,8 +31,8 @@ function run() {
                         if(liveStreamsUpdateInProgress == false) {
                             clearInterval(checkLiveStreamsUpdateProgress);
                             console.log("finished checking live streams");
-                            console.log(liveUserFollows);
-                            console.log(userFollows);
+                            var update_date = new Date();
+                            lastUpdateDate = update_date.getFullYear() + "/" + update_date.getMonth() + "/" + update_date.getDay() + " " + update_date.getHours() + ":" + update_date.getUTCMinutes() + ":" + update_date.getUTCSeconds();
                             updateBadge();
                             needToUpdateFrontEnd = true;
                         }
@@ -63,6 +64,10 @@ function getLiveStreams() {
 function updateBadge(){
     console.log("badge text updated");
     browser.browserAction.setBadgeText({text: (getLiveStreamCount()).toString()});
+}
+
+function lastUpdateDate() {
+
 }
 
 function updateInProgress() {

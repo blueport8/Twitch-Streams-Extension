@@ -18,10 +18,6 @@ function buildStreamFrame(streamerData) {
             </div>
         </div>
     `;
-    getLiveStreamHeader();
-    streamerData.name;
-
-    frameHtml += "</div>";
     return frameHtml;
 }
 
