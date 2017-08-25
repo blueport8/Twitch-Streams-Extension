@@ -98,6 +98,7 @@ body {
 .live_stream_information_frame {
     align-self: flex-start;
     width: 75%;
+    padding-right: 3px;
 }
 
 .live_stream_image {
@@ -129,4 +130,14 @@ body {
     color: #616161;
     font-size: 11px;
     flex-wrap: wrap;
+}
+
+.channel_name_viewers_row {
+    display: flex;
+    justify-content: space-between;
+}
+
+.channel_viewers {
+    font-size: 11px;
+    color: #616161;
 }
