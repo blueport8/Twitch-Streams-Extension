@@ -1,24 +1,22 @@
-function getLiveStream(streamerData, viewers){
+function getLiveStream(streamerData, viewers, previewImageUrl){
     return `
         <a href="#" class="stream_link">
-            ${buildStreamFrame(streamerData, viewers)}
+            ${buildStreamFrame(streamerData, viewers, previewImageUrl)}
         </a>
     `;
 }
 
-function buildStreamFrame(streamerData, viewers) {
-    var imageUrl = streamerData.video_banner;
+function buildStreamFrame(streamerData, viewers, previewImageUrl) {
     return `
         <div class="stream_frame">
             <div class="live_stream_information_frame">
                 ${buildStreamInformationFrame(streamerData, viewers)}
             </div>
             <div class="live_stream_image">
-                ${buildStreamImageFrame(imageUrl)}
+                ${buildStreamImageFrame(previewImageUrl)}
             </div>
         </div>
     `;
-    return frameHtml;
 }
 
 function buildStreamInformationFrame(streamerData, viewers) {

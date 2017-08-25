@@ -56,7 +56,7 @@ function getFollowsCount() {
 function getLiveStreams() {
     var liveStreams = "";
     for(streamIndex = 0; streamIndex < liveUserFollows.length; streamIndex++) {
-        liveStreams += getLiveStream(liveUserFollows[streamIndex].channel, liveUserFollows[streamIndex].viewers);
+        liveStreams += getLiveStream(liveUserFollows[streamIndex].channel, liveUserFollows[streamIndex].viewers, liveUserFollows[streamIndex].preview.large);
     }
     return liveStreams;
 }
