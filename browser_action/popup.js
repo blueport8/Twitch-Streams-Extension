@@ -7,6 +7,8 @@ var live_streams = document.getElementById("live_stream_container");
 var debug_data = document.getElementById("debug");
 var update_date = document.getElementById("update_date");
 
+var refresh_button = document.getElementById("refresh_button").addEventListener("click", refreshData, false);
+
 var backendPage = browser.extension.getBackgroundPage();
 
 function run() {
@@ -35,6 +37,13 @@ function updateFrontend() {
     live_streams.innerHTML = backendPage.getLiveStreams();
     update_date.innerHTML = backendPage.lastUpdateDate;
     updateEventListeners();
+}
+
+function refreshData() {
+    if(!backendPage.updateInProgress()) {
+        backendPage.run();
+        run();
+    }
 }
 
 function updateEventListeners() {

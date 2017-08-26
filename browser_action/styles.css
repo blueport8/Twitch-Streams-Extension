@@ -97,12 +97,12 @@ body {
 
 .live_stream_information_frame {
     align-self: flex-start;
-    width: 75%;
+    width: 70%;
     padding-right: 3px;
 }
 
 .live_stream_image {
-    width: 25%;
+    width: 30%;
     align-items: center
 }
 
