@@ -9,44 +9,6 @@ body {
     display: flex;
 }
 
-.tab {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    height: 20px;
-    padding: 10px;
-    align-self: center;
-}
-
-.tab img {
-    vertical-align:middle;
-}
-
-.tab_left {
-    background: #6441a4;
-    color: #FFFFFF;
-    border-radius: 0px 0px 0px 9px;
-    margin-left: 5px;
-}
-
-.tab_right {
-    background: #6441a4;
-    color: #FFFFFF;
-    border-radius: 0px 0px 8px 0px;
-    margin-right: 5px;
-}
-
-.follows_tab {
-    margin-right: 4px;
-}
-
-.settings_tab {
-    margin-right: 4px;
-}
-
-.refresh_button {
-    margin-right: 4px;
-    vertical-align: middle;
-}
-
 .statistics {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin-top: 3px;
