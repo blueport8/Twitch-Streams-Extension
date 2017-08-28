@@ -1,4 +1,5 @@
-var userUrl = "https://api.twitch.tv/kraken/users/nir94/follows/channels";
+//var userUrl = "https://api.twitch.tv/kraken/users/nir94/follows/channels";
+var username = "";
 var streamUrl = "https://api.twitch.tv/kraken/streams/";
 var userFollows = [];
 var liveUserFollows = [];
@@ -12,7 +13,37 @@ var liveStreamsChecked = 0;
 const client_id = "27rv0a65hae3sjvuf8k978phqhwy8v";
 const updateInterval = 2 * 60 * 1000;
 
+function getUserUrl() {
+    console.log("getUrl called: " + username);
+    return `https://api.twitch.tv/kraken/users/${username}/follows/channels`;
+}
+
+function setUsername(name) {
+    username = name;
+    browser.storage.local.set({"username": name});
+}
+
+function getUsername() {
+    let settings = browser.storage.local.get();
+    settings.then(onGotSettings, onError);
+    console.log(settings);
+}
+
+function onGotSettings(item) {
+    console.log(item);
+    if(item.username != null) {
+        username = item.username;
+    }
+    console.log("username var: " + username);
+    start();
+}
+
+function onError(error) {
+    console.log(error);
+}
+
 function onFirstRun() {
+    getUsername();
     browser.browserAction.setBadgeText({text: "0"});
     browser.browserAction.setBadgeBackgroundColor({color: "#6441A4"})
 }
@@ -77,7 +108,7 @@ function updateInProgress() {
 function updateFollowers() {
     userFollows = [];
     followsUpdateInProgress = true;
-    getFollows(userUrl, getFollowsResponseHandler);
+    getFollows(getUserUrl(), getFollowsResponseHandler);
 }
 
 function updateLiveStreams() {
@@ -144,13 +175,15 @@ function addFollowsToList(follows)
     }
 }
 
-console.log("backend updating");
-onFirstRun();
-run();
-var intervalID = setInterval(
-    function() {
-        console.log("backend updating");
-        run();
-    },
-    updateInterval
-)
+function start() {
+    console.log("backend updating");
+    onFirstRun();
+    run();
+    var intervalID = setInterval(
+        function() {
+            console.log("backend updating");
+            run();
+        },
+        updateInterval
+    )
+}
