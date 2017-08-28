@@ -12,23 +12,30 @@ var liveStreamsChecked = 0;
 const client_id = "27rv0a65hae3sjvuf8k978phqhwy8v";
 const updateInterval = 2 * 60 * 1000;
 
+function loadSettings() {
+    getUsername();
+}
+
 function getUserUrl() {
     return `https://api.twitch.tv/kraken/users/${username}/follows/channels`;
 }
 
 function setUsername(name) {
     username = name;
-    browser.storage.local.set({"username": name});
+    let setting = browser.storage.sync.set({"twitch_streams_username": name});
+    console.log("setting username");
+    setting.then(null, onError);
 }
 
 function getUsername() {
-    let settings = browser.storage.local.get();
+    let settings = browser.storage.sync.get();
     settings.then(onGotSettings, onError);
 }
 
 function onGotSettings(item) {
-    if(item.username != null) {
-        username = item.username;
+    console.log(item);
+    if(item.twitch_streams_username != null) {
+        username = item.twitch_streams_username;
     }
     startBackground();
 }
@@ -38,7 +45,6 @@ function onError(error) {
 }
 
 function onFirstRun() {
-    getUsername();
     browser.browserAction.setBadgeText({text: "0"});
     browser.browserAction.setBadgeBackgroundColor({color: "#6441A4"})
 }
@@ -182,3 +188,5 @@ function startBackground() {
         updateInterval
     )
 }
+
+loadSettings();
