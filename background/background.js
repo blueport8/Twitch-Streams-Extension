@@ -32,7 +32,7 @@ function run() {
                             clearInterval(checkLiveStreamsUpdateProgress);
                             console.log("finished checking live streams");
                             var update_date = new Date();
-                            lastUpdateDate = update_date.getFullYear() + "/" + update_date.getMonth() + "/" + update_date.getDay() + " " + update_date.getHours() + ":" + update_date.getUTCMinutes() + ":" + update_date.getUTCSeconds();
+                            lastUpdateDate = update_date.getFullYear() + "/" + update_date.getMonth() + "/" + update_date.getDay() + " " + update_date.getHours() + ":" + update_date.getMinutes() + ":" + update_date.getSeconds();
                             updateBadge();
                             needToUpdateFrontEnd = true;
                         }
