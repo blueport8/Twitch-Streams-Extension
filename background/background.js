@@ -1,4 +1,3 @@
-//var userUrl = "https://api.twitch.tv/kraken/users/nir94/follows/channels";
 var username = "";
 var streamUrl = "https://api.twitch.tv/kraken/streams/";
 var userFollows = [];
@@ -14,7 +13,6 @@ const client_id = "27rv0a65hae3sjvuf8k978phqhwy8v";
 const updateInterval = 2 * 60 * 1000;
 
 function getUserUrl() {
-    console.log("getUrl called: " + username);
     return `https://api.twitch.tv/kraken/users/${username}/follows/channels`;
 }
 
@@ -26,16 +24,13 @@ function setUsername(name) {
 function getUsername() {
     let settings = browser.storage.local.get();
     settings.then(onGotSettings, onError);
-    console.log(settings);
 }
 
 function onGotSettings(item) {
-    console.log(item);
     if(item.username != null) {
         username = item.username;
     }
-    console.log("username var: " + username);
-    start();
+    startBackground();
 }
 
 function onError(error) {
@@ -175,7 +170,7 @@ function addFollowsToList(follows)
     }
 }
 
-function start() {
+function startBackground() {
     console.log("backend updating");
     onFirstRun();
     run();
