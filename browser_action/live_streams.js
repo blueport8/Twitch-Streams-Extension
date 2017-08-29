@@ -3,19 +3,16 @@ const updateInterval = 1000;
 var active_stream_count = document.getElementById("active_stream_count");
 var follower_count = document.getElementById("followed_stream_count");
 var live_streams = document.getElementById("live_stream_container");
-var debug_data = document.getElementById("debug");
-var update_date = document.getElementById("update_date");
 
-var backendPage = browser.extension.getBackgroundPage();
+
+var BACKGROUNDPAGE = browser.extension.getBackgroundPage();
 
 function run() {
-    debug_data.innerHTML = backendPage.updateInProgress();
-    if(backendPage.updateInProgress()) {
+    if(BACKGROUNDPAGE.getUpdateState()) {
         // Wait for backend to update itself
         var updateIntervalID = setInterval(
             function() {
-                debug_data.innerHTML = backendPage.updateInProgress();
-                if(!backendPage.updateInProgress()) {
+                if(!BACKGROUNDPAGE.getUpdateState()) {
                     clearInterval(updateIntervalID);
                     updateFrontend();
                 }
@@ -29,10 +26,9 @@ function run() {
 }
 
 function updateFrontend() {
-    active_stream_count.innerHTML = backendPage.getLiveStreamCount();
-    follower_count.innerHTML = backendPage.getFollowsCount();
-    live_streams.innerHTML = backendPage.getLiveStreams();
-    update_date.innerHTML = backendPage.lastUpdateDate;
+    active_stream_count.innerHTML = BACKGROUNDPAGE.getLiveStreamCount();
+    follower_count.innerHTML = BACKGROUNDPAGE.getFollowsCount();
+    live_streams.innerHTML = BACKGROUNDPAGE.getLiveStreams();
     updateEventListeners();
 }
 

@@ -32,3 +32,22 @@
     background-color: #6441a4;
     color: #FFFFFF;
 }
+
+.debug_row {
+    display: flex;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #B3B3B3;
+    font-size: 12px;
+}
+
+#debug_frame {
+    margin-top: 10px;
+}
+
+#update_state {
+    margin-left: 3px;
+}
+
+#update_date {
+    margin-left: 3px;
+}
