@@ -1,4 +1,4 @@
-const updateInterval = 1000;
+const updateInterval = 30000;
 
 var active_stream_count = document.getElementById("active_stream_count");
 var follower_count = document.getElementById("followed_stream_count");
@@ -17,7 +17,7 @@ function run() {
                     updateFrontend();
                 }
             },
-            1000
+            500
         );
     }
     else {
