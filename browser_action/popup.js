@@ -1,21 +1,50 @@
-var BACKGROUNDPAGE = browser.extension.getBackgroundPage();
-var refresh_button = document.getElementById("refresh_button").addEventListener("click", refreshData, false);
-var loadFollowsPageVar = document.getElementById("follows_button").addEventListener("click", loadFollowsPage, false);
-var loadSettingsPageVar = document.getElementById("settings_button").addEventListener("click", loadSettingsPage, false);
+// Background access
+let BACKGROUNDPAGE = browser.extension.getBackgroundPage();
 
-function refreshData() {
-    console.log("updating live streams");
-    if(!BACKGROUNDPAGE.updateInProgress()) {
-        BACKGROUNDPAGE.run();
+// Constants
+const DEBUG = true;
+
+// Start of application
+startApplication();
+
+let startApplication = () => {
+    // Setup event listeners
+    if(DEBUG) {
+        console.log("[Debug][Popup] Seting up listeners...");
+    }
+    document.getElementById("refresh_button").addEventListener("click", refreshData, false);
+    document.getElementById("follows_button").addEventListener("click", loadFollowsPage, false);
+    document.getElementById("settings_button").addEventListener("click", loadSettingsPage, false);
+    if(DEBUG) {
+        console.log("[Debug][Popup] Listeners set.");
     }
 }
 
-function loadFollowsPage() {
-    console.log("opening live streams page");
+let refreshData = () => {
+    if(DEBUG) {
+        console.log("[Debug][Popup] Refresh button clicked.");
+    }
+    if(!BACKGROUNDPAGE.getUpdateState()) {
+        if(DEBUG) {
+            console.log("[Debug][Popup] Updating live streams.");
+        }
+        BACKGROUNDPAGE.run();
+    }
+    else if(DEBUG) {
+        console.log("[Debug][Popup] Update already in progress");
+    }
+}
+
+let loadFollowsPage = () => {
+    if(DEBUG) {
+        console.log("[Debug][Popup] Loading follows page.");
+    }
     document.getElementById("content_iframe").src = "pages/live_streams.html";
 }
 
-function loadSettingsPage() {
-    console.log("opening settings page");
+let loadSettingsPage = () => {
+    if(DEBUG) {
+        console.log("[Debug][Popup] Loading settings page.");
+    }
     document.getElementById("content_iframe").src = "pages/settings.html";
 }

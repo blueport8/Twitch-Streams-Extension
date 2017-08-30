@@ -3,10 +3,26 @@ var BACKGROUNDPAGE = browser.extension.getBackgroundPage();
 
 // Constants
 const DEBUG = false;
-const UPDATERATE = 1000;
+const UPDATERATE = 1000; // 1s
 
 // Start of application
-start();
+startApplication();
+
+function startApplication() {
+    // Used DOM elements
+    var debugUpdateState_Element = document.getElementById("update_state");
+    var debugUpdateDate_Element = document.getElementById("update_date");
+
+    // Setup event listeners
+    document.getElementById("save_button_link").addEventListener("click", setUsername, false);
+
+    getUsername();
+    var updateIntervalID = setInterval(
+        function() {
+            checkBackendData(debugUpdateState_Element, debugUpdateDate_Element);
+        }, UPDATERATE
+    );
+}
 
 function getUsername() {
     document.getElementById("user_name").value = BACKGROUNDPAGE.username;
@@ -37,20 +53,4 @@ function checkUpdateDate(updateDate_Element) {
 function checkBackendData(updateState_Element, updateDate_Element) {
     checkUpdateState(updateState_Element);
     checkUpdateDate(updateDate_Element);
-}
-
-function start() {
-    // Used DOM elements
-    var debugUpdateState_Element = document.getElementById("update_state");
-    var debugUpdateDate_Element = document.getElementById("update_date");
-
-    // Setup event listeners
-    document.getElementById("save_button_link").addEventListener("click", setUsername, false);
-
-    getUsername();
-    var updateIntervalID = setInterval(
-        function() {
-            checkBackendData(debugUpdateState_Element, debugUpdateDate_Element);
-        }, UPDATERATE
-    );
 }
