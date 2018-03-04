@@ -1,6 +1,7 @@
+"use strict"
 // var username = "";
 var streamUrl = "https://api.twitch.tv/kraken/streams/";
-var userFollows = [];
+// var userFollows = [];
 var liveUserFollows = [];
 var needToUpdateFrontEnd = false;
 
@@ -12,56 +13,110 @@ var liveStreamsUpdateRequired = false;
 var debugInformationUpdateRequired = false;
 
 const API_CLIENT_ID = "27rv0a65hae3sjvuf8k978phqhwy8v";
-const UPDATERATE = 3 * 60 * 1000; // 3min
-const DEBUG = false;
+const UPDATERATE = 60 * 1000; // 1min
 
+var logger = {
+    debugEnabled: true,
+    warningEnabled: true,
+    errorEnabled: true,
+
+    debug: function(message) {
+        if (this.debugEnabled) {
+            console.log("[TwitchStreams] " + message);
+        }
+    },
+    warn: function(message) {
+        if (this.warningEnabled) {
+            console.warn("[TwitchStreams] " + message);
+        }
+    },
+    error: function(message) {
+        if (this.errorEnabled) {
+            console.error("[TwitchStreams] " + message);
+        }
+    }
+}
 
 let user = {
     name: "",
-    getUrl: function() {
+    userFollows: [],
+    updateRate: 1000 * 60 * 5, // 5min
+
+    passiveUpdate: () => {
+        setInterval(updateData,this.updateRate);
+    },
+    updateData: () => {
+        
+    },
+    getUserUrl: () => {
         return `https://api.twitch.tv/kraken/users/${this.name}/follows/channels`;
     }
 }
 
-let settings = {
-    twitch_streams_username: "",
+let settingsAPI = {
+    username_cached: "",
+    refresh_rate: 120000,
 
-    getBrowserData: function() {
-        var data = browser.storage.sync.get();
-        settings.then(this.onGotSetting, onError);
+    loadSettings: function() {
+        this.fetchBrowserData()
+        .then((data) => {
+            if (data.twitchStreamsUserName != null) {
+                this.username_cached = data.twitchStreamsUserName;
+                logger.debug("Cached username: " + data.twitchStreamsUserName);
+            }
+            else {
+                logger.debug("Username not found in browser data");
+            }
+            return data;
+        })
+        .then((data) => {
+            if (data.twitchStreamsRefreshRate != null) {
+                this.refresh_rate = data.twitchStreamsRefreshRate;
+                logger.debug("Refresh rate set to: " + data.twitchStreamsRefreshRate + "ms");
+            }
+            else {
+                logger.debug("Using default refresh rate: " + this.refresh_rate + "ms");
+            }
+        });
     },
-    setBrowserData: function(name) {
-        browser.storage.sync.set({"twitch_streams_username": name});
-        setting.then(null, application.onError);
+    fetchBrowserData: function() {
+        let browserStorage = browser.storage.sync.get();
+        return browserStorage.then((data) => {
+            logger.debug("Settings loaded");
+            return data;
+        },(err) => {
+            logger.error("Failed to load browser settings: " + err);
+        });
     },
-    onGotSetting: function(item) {
-        if(item.twitch_streams_username != null) {
-            this.twitch_streams_username = item.twitch_streams_username;
-        }
-    },
-
-    getUserName: function() {
-        if(twitch_streams_username == "") {
-            this.getBrowserData();
-        }
+    setBrowserData: function(username) {
+        browser.storage.sync.set({ "twitchStreamsUserName": username })
+        .then(() => {
+            logger.debug("Succesfully set browser data");
+        }, () => {
+            logger.error("Failed to save browser data");
+        });
     }
 }
 
 let application = {
-    startBackground: function() {
-        settings.getBrowserData().then(doBackgroundStuff);
+    startBackground: () => {
+        settingsAPI.fetchBrowserData().then(doBackgroundStuff);
     },
-    doBackgroundStuff: function() {
+    doBackgroundStuff: () => {
 
     },
-    onError: function(error) {
+    onFirstRun: () => {
+        browser.browserAction.setBadgeText({text: "0"});
+        browser.browserAction.setBadgeBackgroundColor({color: "#6441A4"});
+    },
+    onError: (error) => {
         console.log(error);
     }
 }
 
-function loadSettings() {
-    getUsername();
-}
+// let loadSettings = () => {
+//     settingsAPI.getUsername();
+// }
 
 // function setUsername(name) {
 //     username = name;
@@ -75,22 +130,22 @@ function loadSettings() {
 //     settings.then(onGotSettings, onError);
 // }
 
-function onGotSettings(item) {
-    console.log(item);
-    if(item.twitch_streams_username != null) {
-        username = item.twitch_streams_username;
-    }
-    startBackground();
-}
+// function onGotSettings(item) {
+//     console.log(item);
+//     if(item.twitch_streams_username != null) {
+//         username = item.twitch_streams_username;
+//     }
+//     startBackground();
+// }
 
 // function onError(error) {
 //     console.log(error);
 // }
 
-function onFirstRun() {
-    browser.browserAction.setBadgeText({text: "0"});
-    browser.browserAction.setBadgeBackgroundColor({color: "#6441A4"})
-}
+// function onFirstRun() {
+//     browser.browserAction.setBadgeText({text: "0"});
+//     browser.browserAction.setBadgeBackgroundColor({color: "#6441A4"})
+// }
 
 function runUpdate() {
     console.log("backend updating");
@@ -167,13 +222,13 @@ function updateLiveStreams() {
 
 function checkOnlineStatus(channelName, callback) {
     var xmlHttp = new XMLHttpRequest();
-    xmlHttp.onreadystatechange = function() { 
+    xmlHttp.onreadystatechange = function() {
         if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
             var JsonParsedResponse = JSON.parse(xmlHttp.responseText);
             callback(JsonParsedResponse);
-        } 
+        }
     }
-    xmlHttp.open("GET", streamUrl + channelName, true); // true for asynchronous 
+    xmlHttp.open("GET", streamUrl + channelName, true); // true for asynchronous
     xmlHttp.setRequestHeader("Client-ID",API_CLIENT_ID);
     xmlHttp.send(null);
 }
@@ -181,13 +236,13 @@ function checkOnlineStatus(channelName, callback) {
 function getFollows(theUrl, callback)
 {
     var xmlHttp = new XMLHttpRequest();
-    xmlHttp.onreadystatechange = function() { 
+    xmlHttp.onreadystatechange = function() {
         if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
             var JsonParsedResponse = JSON.parse(xmlHttp.responseText);
             callback(JsonParsedResponse);
-        }  
+        }
     }
-    xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+    xmlHttp.open("GET", theUrl, true); // true for asynchronous
     xmlHttp.setRequestHeader("Client-ID",API_CLIENT_ID);
     xmlHttp.send(null);
 }
@@ -232,4 +287,4 @@ function startBackground() {
     )
 }
 
-loadSettings();
+settingsAPI.loadSettings();

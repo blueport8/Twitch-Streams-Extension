@@ -23,7 +23,7 @@ let startApplication = () => {
     startUpdateLoop(activeStreamCount_Element, followerCount_Element, liveStreams_Element);
 }
 
-let startUpdateLoop(activeStreamCount_Element, followerCount_Element, liveStreams_Element) {
+let startUpdateLoop = (activeStreamCount_Element, followerCount_Element, liveStreams_Element) => {
     if(DEBUG) {
         console.log("[Debug][Follows] Starting update loop...");
     }
@@ -70,7 +70,7 @@ let updateFrontend = () => {
     updateEventListeners();
 }
 
-let updateEventListeners = () = {
+let updateEventListeners = () => {
     let links = document.getElementsByClassName("stream_link");
     for(let linkIndex = 0; linkIndex < links.length; linkIndex++) {
         let link = links[linkIndex];
