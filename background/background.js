@@ -15,6 +15,7 @@ var debugInformationUpdateRequired = false;
 const API_CLIENT_ID = "27rv0a65hae3sjvuf8k978phqhwy8v";
 const UPDATERATE = 60 * 1000; // 1min
 
+// ### Logger ###
 var logger = {
     debugEnabled: true,
     warningEnabled: true,
@@ -37,20 +38,35 @@ var logger = {
     }
 }
 
-let user = {
-    name: "",
-    userFollows: [],
-    updateRate: 1000 * 60 * 5, // 5min
-
-    passiveUpdate: () => {
-        setInterval(updateData,this.updateRate);
+// ### Main object ###
+let application = {
+    startBackgroundLoop: function() {
+        this.onFirstRun();
+        var settingsPrepared = settingsAPI.loadSettings();
+        settingsPrepared.then(function(res) {
+            logger.debug("Prepared");
+            application.update();
+        });
     },
-    updateData: () => {
-        
+    onFirstRun: function() {
+        browser.browserAction.setBadgeText({text: "0"});
+        browser.browserAction.setBadgeBackgroundColor({color: "#6441A4"});
     },
-    getUserUrl: () => {
-        return `https://api.twitch.tv/kraken/users/${this.name}/follows/channels`;
+    update: function() {
+        var requestUrl = twitchAPI.follows.createUrl(settingsAPI.username_cached);
+        var follows = twitchAPI.get(requestUrl);
+        follows.then(twitchAPI.follows.loaded, twitchAPI.follows.notLoaded)
+        .then(twitchAPI.follows.parseData) // Follows loaded
+        .then(twitchAPI.liveStream.checkAll)
     }
+}
+
+let session = {
+    username: "",
+    followsCount: 0,
+    follows: [],
+    live: [],
+    lastUpdateLive: []
 }
 
 let settingsAPI = {
@@ -58,11 +74,11 @@ let settingsAPI = {
     refresh_rate: 120000,
 
     loadSettings: function() {
-        this.fetchBrowserData()
+        return this.fetchBrowserData()
         .then((data) => {
             if (data.twitchStreamsUserName != null) {
                 this.username_cached = data.twitchStreamsUserName;
-                logger.debug("Cached username: " + data.twitchStreamsUserName);
+                logger.debug(`Cached username: ${data.twitchStreamsUserName}`);
             }
             else {
                 logger.debug("Username not found in browser data");
@@ -72,10 +88,10 @@ let settingsAPI = {
         .then((data) => {
             if (data.twitchStreamsRefreshRate != null) {
                 this.refresh_rate = data.twitchStreamsRefreshRate;
-                logger.debug("Refresh rate set to: " + data.twitchStreamsRefreshRate + "ms");
+                logger.debug(`Refresh rate set to: ${data.twitchStreamsRefreshRate}ms`);
             }
             else {
-                logger.debug("Using default refresh rate: " + this.refresh_rate + "ms");
+                logger.debug(`Using default refresh rate: ${this.refresh_rate}ms`);
             }
         });
     },
@@ -85,7 +101,7 @@ let settingsAPI = {
             logger.debug("Settings loaded");
             return data;
         },(err) => {
-            logger.error("Failed to load browser settings: " + err);
+            logger.error(`Failed to load browser settings: ${err}`);
         });
     },
     setBrowserData: function(username) {
@@ -98,20 +114,74 @@ let settingsAPI = {
     }
 }
 
-let application = {
-    startBackground: () => {
-        settingsAPI.fetchBrowserData().then(doBackgroundStuff);
+let twitchAPI = {
+    get: (url) => {
+        return new Promise(function (resolve, reject) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", url);
+            xhr.setRequestHeader("Client-ID", API_CLIENT_ID);
+            xhr.onload = resolve;
+            xhr.onerror = reject;
+            xhr.send();
+        });
     },
-    doBackgroundStuff: () => {
-
+    follows: {
+        createUrl: (username) => {
+            return `https://api.twitch.tv/kraken/users/${username}/follows/channels`;
+        },
+        loaded: (result) => {
+            var parsedResult = JSON.parse(result.explicitOriginalTarget.response);
+            logger.debug(JSON.stringify(parsedResult, null, 4));
+            return parsedResult;
+        },
+        notLoaded: (error) => {
+            var parsedError = JSON.parse(error);
+            logger.debug(JSON.stringify(parsedError, null, 4));
+            return parsedError;
+        },
+        parseData: (result) => {
+            session.username = settingsAPI.username_cached;
+            session.followsCount = result._total;
+            result.follows.forEach(stream => {
+                let streamObj = {
+                    title: stream.channel.status,
+                    game: stream.channel.game,
+                    channelName: stream.channel.name,
+                    streamer: stream.channel.display_name,
+                    language: stream.channel.language,
+                    logoUrl: stream.channel.logo,
+                    streamUrl: stream.channel.url,
+                };
+                session.follows.push(streamObj);
+            });
+        }
     },
-    onFirstRun: () => {
-        browser.browserAction.setBadgeText({text: "0"});
-        browser.browserAction.setBadgeBackgroundColor({color: "#6441A4"});
-    },
-    onError: (error) => {
-        console.log(error);
+    liveStream: {
+        createUrl: (channelName) => {
+            return `https://api.twitch.tv/kraken/streams/${channelName}`;
+        },
+        checkAll: function() {
+            session.follows.forEach(stream => {
+                var channelUrl = twitchAPI.liveStream.createUrl(stream.channelName);
+                var channel = twitchAPI.get(channelUrl);
+                channel.then(twitchAPI.liveStream.loaded,twitchAPI.liveStream.notLoaded);
+            });
+        },
+        loaded: (result) => {
+            var parsedResult = JSON.parse(result.explicitOriginalTarget.response);
+            if(result.stream != null) {
+                logger.debug(JSON.stringify(parsedResult, null, 4));
+                session.live.push(parsedResult);
+            }
+            return parsedResult;
+        },
+        notLoaded: (error) => {
+            var parsedError = JSON.parse(error);
+            logger.debug(JSON.stringify(parsedError, null, 4));
+            return parsedError;
+        }
     }
+    
 }
 
 // let loadSettings = () => {
@@ -233,6 +303,8 @@ function checkOnlineStatus(channelName, callback) {
     xmlHttp.send(null);
 }
 
+
+
 function getFollows(theUrl, callback)
 {
     var xmlHttp = new XMLHttpRequest();
@@ -287,4 +359,5 @@ function startBackground() {
     )
 }
 
-settingsAPI.loadSettings();
+//settingsAPI.loadSettings();
+application.startBackgroundLoop();
