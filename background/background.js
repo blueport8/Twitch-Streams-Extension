@@ -56,8 +56,13 @@ let application = {
         var requestUrl = twitchAPI.follows.createUrl(settingsAPI.username_cached);
         var follows = twitchAPI.get(requestUrl);
         follows.then(twitchAPI.follows.loaded, twitchAPI.follows.notLoaded)
-        .then(twitchAPI.follows.parseData) // Follows loaded
-        .then(twitchAPI.liveStream.checkAll)
+        .then(twitchAPI.follows.parseData, null) // Follows loaded
+        .then(twitchAPI.follows.getNext, null) // Check if returned data contains more followed channels
+        .then(twitchAPI.liveStream.checkAll, null)
+        .then(this.showStats);
+    },
+    showStats: function(res) {
+        logger.debug("Session: " + JSON.stringify(session, null, 4));
     }
 }
 
@@ -131,7 +136,6 @@ let twitchAPI = {
         },
         loaded: (result) => {
             var parsedResult = JSON.parse(result.explicitOriginalTarget.response);
-            logger.debug(JSON.stringify(parsedResult, null, 4));
             return parsedResult;
         },
         notLoaded: (error) => {
@@ -142,18 +146,20 @@ let twitchAPI = {
         parseData: (result) => {
             session.username = settingsAPI.username_cached;
             session.followsCount = result._total;
-            result.follows.forEach(stream => {
-                let streamObj = {
-                    title: stream.channel.status,
-                    game: stream.channel.game,
-                    channelName: stream.channel.name,
-                    streamer: stream.channel.display_name,
-                    language: stream.channel.language,
-                    logoUrl: stream.channel.logo,
-                    streamUrl: stream.channel.url,
-                };
-                session.follows.push(streamObj);
+            result.follows.forEach((stream) => {
+                session.follows.push(stream);
             });
+            return result;
+        },
+        getNext: (result) => {
+            let nextFollows = null;
+            if (result._links.next != null && result.follows.length > 0) {
+                nextFollows = twitchAPI.get(result._links.next);
+                nextFollows.then(twitchAPI.follows.loaded, twitchAPI.follows.notLoaded)
+                .then(twitchAPI.follows.parseData)
+                .then(twitchAPI.follows.getNext);
+            }
+            return nextFollows;
         }
     },
     liveStream: {
@@ -162,15 +168,14 @@ let twitchAPI = {
         },
         checkAll: function() {
             session.follows.forEach(stream => {
-                var channelUrl = twitchAPI.liveStream.createUrl(stream.channelName);
+                var channelUrl = twitchAPI.liveStream.createUrl(stream.channel.name);
                 var channel = twitchAPI.get(channelUrl);
                 channel.then(twitchAPI.liveStream.loaded,twitchAPI.liveStream.notLoaded);
             });
         },
         loaded: (result) => {
             var parsedResult = JSON.parse(result.explicitOriginalTarget.response);
-            if(result.stream != null) {
-                logger.debug(JSON.stringify(parsedResult, null, 4));
+            if(parsedResult.stream != null) {
                 session.live.push(parsedResult);
             }
             return parsedResult;
@@ -183,39 +188,6 @@ let twitchAPI = {
     }
     
 }
-
-// let loadSettings = () => {
-//     settingsAPI.getUsername();
-// }
-
-// function setUsername(name) {
-//     username = name;
-//     let setting = browser.storage.sync.set({"twitch_streams_username": name});
-//     console.log("setting username");
-//     setting.then(null, onError);
-// }
-
-// function getUsername() {
-//     let settings = browser.storage.sync.get();
-//     settings.then(onGotSettings, onError);
-// }
-
-// function onGotSettings(item) {
-//     console.log(item);
-//     if(item.twitch_streams_username != null) {
-//         username = item.twitch_streams_username;
-//     }
-//     startBackground();
-// }
-
-// function onError(error) {
-//     console.log(error);
-// }
-
-// function onFirstRun() {
-//     browser.browserAction.setBadgeText({text: "0"});
-//     browser.browserAction.setBadgeBackgroundColor({color: "#6441A4"})
-// }
 
 function runUpdate() {
     console.log("backend updating");
