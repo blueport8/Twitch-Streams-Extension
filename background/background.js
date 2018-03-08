@@ -36,7 +36,6 @@ let application = {
         settingsPrepared.then(function(res) {
             logger.debug("Prepared");
             application.update();
-            setTimeout(application.update, settingsAPI.refresh_rate);
         });
     },
     onFirstRun: function() {
@@ -62,6 +61,7 @@ let application = {
         }
         logger.debug("Finished loading follows!");
         twitchAPI.liveStream.processAll();
+        setTimeout(application.update, settingsAPI.refresh_rate);
     }
 }
 
@@ -79,7 +79,7 @@ function getCurrentSession() {
 
 let settingsAPI = {
     username_cached: "",
-    refresh_rate: 120000,
+    refresh_rate: 60000,
 
     loadSettings: function() {
         return this.fetchBrowserData()
@@ -155,7 +155,9 @@ let twitchAPI = {
             session.username = settingsAPI.username_cached;
             session.followsCount = parsedResponse._total;
             parsedResponse.follows.forEach((stream) => {
-                session.follows.push(stream);
+                var channelFound = session.follows.find(channel => channel._links.self == stream._links.self)
+                if(channelFound === undefined)
+                    session.follows.push(stream);
             });
         }
     },
@@ -172,13 +174,19 @@ let twitchAPI = {
         },
         loaded: (result) => {
             var parsedResult = JSON.parse(result.explicitOriginalTarget.response);
-            var channelFound = session.live.find(channel => channel._links.self == parsedResult._links.self)
-            if(parsedResult.stream != null && (channelFound === undefined)) { // Live
-                session.live.push(parsedResult);
-                twitchAPI.liveStream.updateBadge();
+            var channelOnList = session.live.find(channel => channel._links.self == parsedResult._links.self);
+            if(channelOnList !== undefined) { // On the list
+                if(parsedResult.stream === null) { // Need to remove from list
+                    var index = session.live.indexOf(channelOnList);
+                    session.live.splice(index, 1);
+                    twitchAPI.liveStream.updateBadge();
+                }
             }
-            else { // Offline
-                session.live = session.live.filter(channel => channel._links.self !== parsedResult._links.self)
+            else { // Not on the list
+                if(parsedResult.stream !== null) {
+                    session.live.push(parsedResult);
+                    twitchAPI.liveStream.updateBadge();
+                }
             }
             return parsedResult;
         },

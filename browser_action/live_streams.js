@@ -3,27 +3,17 @@ let BACKGROUNDPAGE = browser.extension.getBackgroundPage();
 
 // Constants
 const DEBUG = false;
-const UPDATERATE =  1000; // 1s
+const UPDATERATE =  5000; // 5s
 
 // Start of application
 startApplication();
 
 function startApplication() {
-    // Setup event listeners
-    if(DEBUG) {
-        console.log("[Debug][Follows] Seting up listeners...");
-    }
-    let activeStreamCount_Element = document.getElementById("active_stream_count");
-    let followerCount_Element = document.getElementById("followed_stream_count");
-    let liveStreams_Element = document.getElementById("live_stream_container");
-    if(DEBUG) {
-        console.log("[Debug][Follows] Listeners set.");
-    }
-
-    startUpdateLoop(activeStreamCount_Element, followerCount_Element, liveStreams_Element);
+    runUpdate();
+    startUpdateLoop();
 }
 
-function startUpdateLoop(activeStreamCount_Element, followerCount_Element, liveStreams_Element) {
+function startUpdateLoop() {
     if(DEBUG) {
         console.log("[Debug][Follows] Starting update loop...");
     }
@@ -35,21 +25,6 @@ function runUpdate() {
         console.log("[Debug][Follows] Performing update...");
     }
     updateFrontend();
-    // if(BACKGROUNDPAGE.getUpdateState()) {
-    //     // Wait for backend to update itself
-    //     let updateIntervalID = setInterval(
-    //         () => {
-    //             if(!BACKGROUNDPAGE.getUpdateState()) {
-    //                 clearInterval(updateIntervalID);
-    //                 updateFrontend();
-    //             }
-    //         },
-    //         500
-    //     );
-    // }
-    // else {
-    //     updateFrontend();
-    // }
 }
 
 function updateRequired() {
