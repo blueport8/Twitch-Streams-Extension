@@ -8,7 +8,7 @@ const UPDATERATE =  1000; // 1s
 // Start of application
 startApplication();
 
-let startApplication = () => {
+function startApplication() {
     // Setup event listeners
     if(DEBUG) {
         console.log("[Debug][Follows] Seting up listeners...");
@@ -23,54 +23,50 @@ let startApplication = () => {
     startUpdateLoop(activeStreamCount_Element, followerCount_Element, liveStreams_Element);
 }
 
-let startUpdateLoop = (activeStreamCount_Element, followerCount_Element, liveStreams_Element) => {
+function startUpdateLoop(activeStreamCount_Element, followerCount_Element, liveStreams_Element) {
     if(DEBUG) {
         console.log("[Debug][Follows] Starting update loop...");
     }
-    setInterval(
-        () => {
-            if(updateRequired()) {
-                runUpdate();
-            }
-        },
-        UPDATERATE
-    )
+    setInterval(runUpdate, UPDATERATE);
 }
 
-let runUpdate = () => {
+function runUpdate() {
     if(DEBUG) {
         console.log("[Debug][Follows] Performing update...");
     }
-
-    if(BACKGROUNDPAGE.getUpdateState()) {
-        // Wait for backend to update itself
-        let updateIntervalID = setInterval(
-            () => {
-                if(!BACKGROUNDPAGE.getUpdateState()) {
-                    clearInterval(updateIntervalID);
-                    updateFrontend();
-                }
-            },
-            500
-        );
-    }
-    else {
-        updateFrontend();
-    }
+    updateFrontend();
+    // if(BACKGROUNDPAGE.getUpdateState()) {
+    //     // Wait for backend to update itself
+    //     let updateIntervalID = setInterval(
+    //         () => {
+    //             if(!BACKGROUNDPAGE.getUpdateState()) {
+    //                 clearInterval(updateIntervalID);
+    //                 updateFrontend();
+    //             }
+    //         },
+    //         500
+    //     );
+    // }
+    // else {
+    //     updateFrontend();
+    // }
 }
 
-let updateRequired = () => {
+function updateRequired() {
     return BACKGROUNDPAGE.getUpdateState();
 }
 
-let updateFrontend = () => {
-    activeStreamCount_Element.innerHTML = BACKGROUNDPAGE.getLiveStreamCount();
-    followerCount_Element.innerHTML = BACKGROUNDPAGE.getFollowsCount();
-    liveStreams_Element.innerHTML = BACKGROUNDPAGE.getLiveStreams();
+function updateFrontend() {
+    let session = BACKGROUNDPAGE.getCurrentSession();
+    document.getElementById("active_stream_count").innerHTML = session.live.length;
+    document.getElementById("followed_stream_count").innerHTML = session.follows.length;
+    //activeStreamCount_Element.innerHTML = BACKGROUNDPAGE.getLiveStreamCount();
+    //followerCount_Element.innerHTML = BACKGROUNDPAGE.getFollowsCount();
+    //liveStreams_Element.innerHTML = BACKGROUNDPAGE.getLiveStreams();
     updateEventListeners();
 }
 
-let updateEventListeners = () => {
+function updateEventListeners() {
     let links = document.getElementsByClassName("stream_link");
     for(let linkIndex = 0; linkIndex < links.length; linkIndex++) {
         let link = links[linkIndex];
@@ -86,7 +82,7 @@ let updateEventListeners = () => {
     }
 }
 
-let openStream = (channel_name) => {
+function openStream(channel_name) {
     browser.tabs.create({
         url:"https://twitch.tv/" + channel_name,
         active: true
@@ -94,4 +90,4 @@ let openStream = (channel_name) => {
 }
 
 console.log("frontend updataing");
-runUpdate();
+//runUpdate();

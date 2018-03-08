@@ -1,16 +1,6 @@
 "use strict"
 // var username = "";
 var streamUrl = "https://api.twitch.tv/kraken/streams/";
-// var userFollows = [];
-var liveUserFollows = [];
-var needToUpdateFrontEnd = false;
-
-var followsUpdateInProgress = false;
-var liveStreamsUpdateInProgress = false;
-var lastUpdateDate = "never";
-var liveStreamsChecked = 0;
-var liveStreamsUpdateRequired = false;
-var debugInformationUpdateRequired = false;
 
 const API_CLIENT_ID = "27rv0a65hae3sjvuf8k978phqhwy8v";
 const UPDATERATE = 60 * 1000; // 1min
@@ -46,6 +36,7 @@ let application = {
         settingsPrepared.then(function(res) {
             logger.debug("Prepared");
             application.update();
+            setTimeout(application.update, settingsAPI.refresh_rate);
         });
     },
     onFirstRun: function() {
@@ -53,16 +44,24 @@ let application = {
         browser.browserAction.setBadgeBackgroundColor({color: "#6441A4"});
     },
     update: function() {
-        var requestUrl = twitchAPI.follows.createUrl(settingsAPI.username_cached);
-        var follows = twitchAPI.get(requestUrl);
-        follows.then(twitchAPI.follows.loaded, twitchAPI.follows.notLoaded)
-        .then(twitchAPI.follows.parseData, null) // Follows loaded
-        .then(twitchAPI.follows.getNext, null) // Check if returned data contains more followed channels
-        .then(twitchAPI.liveStream.checkAll, null)
-        .then(this.showStats);
-    },
-    showStats: function(res) {
-        logger.debug("Session: " + JSON.stringify(session, null, 4));
+        var requestDetails = {
+            getNext: true,
+            username: settingsAPI.username_cached,
+            offset: 0
+        }
+        while(requestDetails.getNext) {
+            var requestUrl = twitchAPI.follows.createUrl(requestDetails);
+            var response = twitchAPI.getSync(requestUrl);
+            var parsedResponse = twitchAPI.follows.parse(response);
+            twitchAPI.follows.process(parsedResponse);
+
+            if(parsedResponse.follows.length == 0)
+                requestDetails.getNext = false;
+            else
+                requestDetails.offset += 25;
+        }
+        logger.debug("Finished loading follows!");
+        twitchAPI.liveStream.processAll();
     }
 }
 
@@ -72,6 +71,10 @@ let session = {
     follows: [],
     live: [],
     lastUpdateLive: []
+}
+
+function getCurrentSession() {
+    return session;
 }
 
 let settingsAPI = {
@@ -120,7 +123,7 @@ let settingsAPI = {
 }
 
 let twitchAPI = {
-    get: (url) => {
+    getAsync: (url) => {
         return new Promise(function (resolve, reject) {
             var xhr = new XMLHttpRequest();
             xhr.open("GET", url);
@@ -130,53 +133,52 @@ let twitchAPI = {
             xhr.send();
         });
     },
+    getSync: (url) => {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", url, false);
+        xhr.setRequestHeader("Client-ID", API_CLIENT_ID);
+        xhr.send();
+        if(xhr.status === 200)
+            return xhr.responseText;
+        else
+            return "";
+    },
     follows: {
-        createUrl: (username) => {
-            return `https://api.twitch.tv/kraken/users/${username}/follows/channels`;
+        createUrl: (requestDetails) => {
+            return `https://api.twitch.tv/kraken/users/${requestDetails.username}/follows/channels?direction=DESC&limit=25&offset=${requestDetails.offset}&sortby=created_at&user=${requestDetails.username}`;
         },
-        loaded: (result) => {
-            var parsedResult = JSON.parse(result.explicitOriginalTarget.response);
-            return parsedResult;
+        parse: (response) => {
+            var parsedResponse = JSON.parse(response);
+            return parsedResponse
         },
-        notLoaded: (error) => {
-            var parsedError = JSON.parse(error);
-            logger.debug(JSON.stringify(parsedError, null, 4));
-            return parsedError;
-        },
-        parseData: (result) => {
+        process: (parsedResponse) => {
             session.username = settingsAPI.username_cached;
-            session.followsCount = result._total;
-            result.follows.forEach((stream) => {
+            session.followsCount = parsedResponse._total;
+            parsedResponse.follows.forEach((stream) => {
                 session.follows.push(stream);
             });
-            return result;
-        },
-        getNext: (result) => {
-            let nextFollows = null;
-            if (result._links.next != null && result.follows.length > 0) {
-                nextFollows = twitchAPI.get(result._links.next);
-                nextFollows.then(twitchAPI.follows.loaded, twitchAPI.follows.notLoaded)
-                .then(twitchAPI.follows.parseData)
-                .then(twitchAPI.follows.getNext);
-            }
-            return nextFollows;
         }
     },
     liveStream: {
         createUrl: (channelName) => {
             return `https://api.twitch.tv/kraken/streams/${channelName}`;
         },
-        checkAll: function() {
+        processAll: function() {
             session.follows.forEach(stream => {
                 var channelUrl = twitchAPI.liveStream.createUrl(stream.channel.name);
-                var channel = twitchAPI.get(channelUrl);
+                var channel = twitchAPI.getAsync(channelUrl);
                 channel.then(twitchAPI.liveStream.loaded,twitchAPI.liveStream.notLoaded);
             });
         },
         loaded: (result) => {
             var parsedResult = JSON.parse(result.explicitOriginalTarget.response);
-            if(parsedResult.stream != null) {
+            var channelFound = session.live.find(channel => channel._links.self == parsedResult._links.self)
+            if(parsedResult.stream != null && (channelFound === undefined)) { // Live
                 session.live.push(parsedResult);
+                twitchAPI.liveStream.updateBadge();
+            }
+            else { // Offline
+                session.live = session.live.filter(channel => channel._links.self !== parsedResult._links.self)
             }
             return parsedResult;
         },
@@ -184,6 +186,9 @@ let twitchAPI = {
             var parsedError = JSON.parse(error);
             logger.debug(JSON.stringify(parsedError, null, 4));
             return parsedError;
+        },
+        updateBadge: () => {
+            browser.browserAction.setBadgeText({text: (session.live.length).toString()});
         }
     }
     
@@ -219,7 +224,7 @@ function runUpdate() {
 }
 
 function getLiveStreamCount() {
-    return liveUserFollows.length;
+    return session.live.length;
 }
 
 function getFollowsCount() {
@@ -240,11 +245,6 @@ function getLiveStreams() {
         liveStreams += getLiveStream(liveUserFollows[streamIndex].channel, liveUserFollows[streamIndex].viewers, liveUserFollows[streamIndex].preview.large);
     }
     return liveStreams;
-}
-
-function updateBadge(){
-    console.log("badge text updated");
-    browser.browserAction.setBadgeText({text: (getLiveStreamCount()).toString()});
 }
 
 function updateFollowers() {

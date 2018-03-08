@@ -7,7 +7,7 @@ const DEBUG = true;
 // Start of application
 startApplication();
 
-let startApplication = () => {
+function startApplication() {
     // Setup event listeners
     if(DEBUG) {
         console.log("[Debug][Popup] Seting up listeners...");
@@ -20,7 +20,7 @@ let startApplication = () => {
     }
 }
 
-let refreshData = () => {
+function refreshData() {
     if(DEBUG) {
         console.log("[Debug][Popup] Refresh button clicked.");
     }
@@ -35,14 +35,14 @@ let refreshData = () => {
     }
 }
 
-let loadFollowsPage = () => {
+function loadFollowsPage() {
     if(DEBUG) {
         console.log("[Debug][Popup] Loading follows page.");
     }
     document.getElementById("content_iframe").src = "pages/live_streams.html";
 }
 
-let loadSettingsPage = () => {
+function loadSettingsPage() {
     if(DEBUG) {
         console.log("[Debug][Popup] Loading settings page.");
     }
