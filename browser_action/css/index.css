@@ -5,54 +5,44 @@ body {
     overflow-y: hidden;
     overflow-x: hidden;
 }
+
 .flex_row {
     display: flex;
     justify-content: space-between;
 }
 
-#follows_button {
-    text-decoration: none;
-}
-
-#settings_button {
-    text-decoration: none;
-}
-
-#buttons {
+#buttons_row {
     display: flex;
+    height: 35px;
+    width: 100%;
+}
+
+#buttons_row > a {
+    text-decoration: none;
 }
 
 .tab {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    height: 20px;
-    padding: 10px;
+    height: 25px;
     align-self: center;
+    overflow: auto;
+    color: rgb(247, 247, 247);
+    padding: 5px 10px 5px 10px;
+    background-color: #6441a4;
 }
 
-.tab img {
-    vertical-align:middle;
+.tab > img {
+    padding: 3px;
 }
 
-.tab_left {
-    background: #6441a4;
-    color: #FFFFFF;
-    border-radius: 0px 0px 0px 9px;
-    margin-left: 5px;
+.spacing {
+    background-color: #6441a4;
+    height: 35px;
+    width: 100%;
 }
 
-.tab_right {
-    background: #6441a4;
-    color: #FFFFFF;
-    border-radius: 0px 0px 8px 0px;
-    margin-right: 5px;
-}
-
-.follows_tab {
-    margin-right: 4px;
-}
-
-.settings_tab {
-    margin-right: 4px;
+.tab:hover {
+    background-color: #6441a4cb;
 }
 
 .refresh_button {
@@ -65,8 +55,4 @@ body {
     width:390;
     height:450px;
     overflow: auto;
-}
-
-#refresh_button {
-    align-items: baseline;
 }

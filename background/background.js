@@ -69,8 +69,7 @@ let session = {
     username: "",
     followsCount: 0,
     follows: [],
-    live: [],
-    lastUpdateLive: []
+    live: []
 }
 
 function getCurrentSession() {
@@ -176,14 +175,14 @@ let twitchAPI = {
             var parsedResult = JSON.parse(result.explicitOriginalTarget.response);
             var channelOnList = session.live.find(channel => channel._links.self == parsedResult._links.self);
             if(channelOnList !== undefined) { // On the list
-                if(parsedResult.stream === null) { // Need to remove from list
+                if (parsedResult.stream === null) { // Need to remove from list
                     var index = session.live.indexOf(channelOnList);
                     session.live.splice(index, 1);
                     twitchAPI.liveStream.updateBadge();
                 }
             }
             else { // Not on the list
-                if(parsedResult.stream !== null) {
+                if (parsedResult.stream !== null) { // stream online and not on the list
                     session.live.push(parsedResult);
                     twitchAPI.liveStream.updateBadge();
                 }
