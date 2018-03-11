@@ -56,4 +56,5 @@ function openStream(channel_name) {
         url:"https://twitch.tv/" + channel_name,
         active: true
     });
+    browser.runtime.sendMessage({"subject": "background.close_popup"});
 }
