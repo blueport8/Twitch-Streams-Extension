@@ -1,5 +1,4 @@
 "use strict"
-// var username = "";
 var streamUrl = "https://api.twitch.tv/kraken/streams/";
 
 const API_CLIENT_ID = "27rv0a65hae3sjvuf8k978phqhwy8v";
@@ -43,6 +42,10 @@ let application = {
         browser.browserAction.setBadgeBackgroundColor({color: "#6441A4"});
     },
     update: function() {
+        application.updateImpl();
+        setTimeout(application.update, settingsAPI.refresh_rate);
+    },
+    updateImpl: function() {
         var requestDetails = {
             getNext: true,
             username: settingsAPI.username_cached,
@@ -61,7 +64,6 @@ let application = {
         }
         logger.debug("Finished loading follows!");
         twitchAPI.liveStream.processAll();
-        setTimeout(application.update, settingsAPI.refresh_rate);
     }
 }
 
@@ -70,10 +72,6 @@ let session = {
     followsCount: 0,
     follows: [],
     live: []
-}
-
-function getCurrentSession() {
-    return session;
 }
 
 let settingsAPI = {
@@ -230,6 +228,12 @@ function runUpdate() {
     );
 }
 
+// PUBLIC FUNCTIONS - START
+
+function getCurrentSession() {
+    return session;
+}
+
 function getLiveStreamCount() {
     return session.live.length;
 }
@@ -238,105 +242,27 @@ function getFollowsCount() {
     return userFollows.length;
 }
 
-function getLastUpdateDate() {
-    return lastUpdateDate;
+function setUsername(username) {
+    settingsAPI.setBrowserData(username);
 }
 
-function getUpdateState() {
-    return (followsUpdateInProgress || liveStreamsUpdateInProgress);
+function getUsername() {
+    return session.username;
 }
 
 function getLiveStreams() {
     var liveStreams = "";
-    for(streamIndex = 0; streamIndex < liveUserFollows.length; streamIndex++) {
-        liveStreams += getLiveStream(liveUserFollows[streamIndex].channel, liveUserFollows[streamIndex].viewers, liveUserFollows[streamIndex].preview.large);
+    var liveChannels = session.live;
+    for(let streamIndex = 0; streamIndex < liveChannels.length; streamIndex++) {
+        liveStreams += getLiveStream(liveChannels[streamIndex].stream.channel, liveChannels[streamIndex].stream.viewers, liveChannels[streamIndex].stream.preview.large);
     }
     return liveStreams;
 }
 
-function updateFollowers() {
-    userFollows = [];
-    followsUpdateInProgress = true;
-    getFollows(user.getUrl(), getFollowsResponseHandler);
+function forceRefresh() {
+    application.updateImpl();
 }
 
-function updateLiveStreams() {
-    liveUserFollows = []
-    liveStreamsUpdateInProgress = true;
-    liveStreamsChecked = 0;
-    for(streamIndex = 0; streamIndex < userFollows.length; streamIndex++) {
-        checkOnlineStatus(userFollows[streamIndex].channel.name, checkOnlineStatusResponseHandler);
-    }
-}
+// PUBLIC FUNCTIONS - END
 
-function checkOnlineStatus(channelName, callback) {
-    var xmlHttp = new XMLHttpRequest();
-    xmlHttp.onreadystatechange = function() {
-        if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
-            var JsonParsedResponse = JSON.parse(xmlHttp.responseText);
-            callback(JsonParsedResponse);
-        }
-    }
-    xmlHttp.open("GET", streamUrl + channelName, true); // true for asynchronous
-    xmlHttp.setRequestHeader("Client-ID",API_CLIENT_ID);
-    xmlHttp.send(null);
-}
-
-
-
-function getFollows(theUrl, callback)
-{
-    var xmlHttp = new XMLHttpRequest();
-    xmlHttp.onreadystatechange = function() {
-        if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
-            var JsonParsedResponse = JSON.parse(xmlHttp.responseText);
-            callback(JsonParsedResponse);
-        }
-    }
-    xmlHttp.open("GET", theUrl, true); // true for asynchronous
-    xmlHttp.setRequestHeader("Client-ID",API_CLIENT_ID);
-    xmlHttp.send(null);
-}
-
-function checkOnlineStatusResponseHandler(jsonResponse) {
-    if(jsonResponse.stream != null) {
-        liveUserFollows.push(jsonResponse.stream);
-    }
-    liveStreamsChecked++;
-    if(liveStreamsChecked == userFollows.length) {
-        liveStreamsUpdateInProgress = false;
-    }
-}
-
-function getFollowsResponseHandler(jsonResponse)
-{
-    if(jsonResponse.follows.length > 0) {
-        addFollowsToList(jsonResponse.follows);
-        getFollows(jsonResponse._links.next, getFollowsResponseHandler);
-    }
-    else {
-        followsUpdateInProgress = false;
-    }
-}
-
-function addFollowsToList(follows)
-{
-    for(followerIndex = 0; followerIndex < follows.length; followerIndex++) {
-        userFollows.push(follows[followerIndex]);
-    }
-}
-
-function startBackground() {
-    console.log("backend updating");
-    onFirstRun();
-    runUpdate();
-    var intervalID = setInterval(
-        function() {
-            runUpdate();
-        },
-        UPDATERATE
-    )
-}
-
-//settingsAPI.loadSettings();
 application.startBackgroundLoop();

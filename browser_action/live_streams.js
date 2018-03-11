@@ -1,43 +1,37 @@
+"use strict"
 // Background access
 let BACKGROUNDPAGE = browser.extension.getBackgroundPage();
 
 // Constants
 const DEBUG = false;
-const UPDATERATE =  5000; // 5s
+const LONG_UPDATERATE =  10000; // 10s
+const SHORT_UPDATERATE =  1000; // 1s
 
 // Start of application
-startApplication();
+shortUpdateRateHandler();
+longUpdateRateHandler();
+setInterval(shortUpdateRateHandler, SHORT_UPDATERATE);
+setInterval(longUpdateRateHandler, LONG_UPDATERATE);
 
-function startApplication() {
-    runUpdate();
-    startUpdateLoop();
+function shortUpdateRateHandler() {
+    console.log("Short update handler fired");
+    updateFollows();
 }
 
-function startUpdateLoop() {
-    if(DEBUG) {
-        console.log("[Debug][Follows] Starting update loop...");
-    }
-    setInterval(runUpdate, UPDATERATE);
+function longUpdateRateHandler() {
+    console.log("Long update handler fired");
+    updateLiveStreams();
 }
 
-function runUpdate() {
-    if(DEBUG) {
-        console.log("[Debug][Follows] Performing update...");
-    }
-    updateFrontend();
-}
-
-function updateRequired() {
-    return BACKGROUNDPAGE.getUpdateState();
-}
-
-function updateFrontend() {
+function updateFollows() {
     let session = BACKGROUNDPAGE.getCurrentSession();
     document.getElementById("active_stream_count").innerHTML = session.live.length;
     document.getElementById("followed_stream_count").innerHTML = session.follows.length;
-    //activeStreamCount_Element.innerHTML = BACKGROUNDPAGE.getLiveStreamCount();
-    //followerCount_Element.innerHTML = BACKGROUNDPAGE.getFollowsCount();
-    //liveStreams_Element.innerHTML = BACKGROUNDPAGE.getLiveStreams();
+}
+
+function updateLiveStreams() {
+    live_stream_container
+    document.getElementById("live_stream_container").innerHTML = BACKGROUNDPAGE.getLiveStreams();
     updateEventListeners();
 }
 
@@ -63,6 +57,3 @@ function openStream(channel_name) {
         active: true
     });
 }
-
-console.log("frontend updataing");
-//runUpdate();
