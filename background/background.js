@@ -1,8 +1,5 @@
 "use strict"
-var streamUrl = "https://api.twitch.tv/kraken/streams/";
-
 const API_CLIENT_ID = "27rv0a65hae3sjvuf8k978phqhwy8v";
-const UPDATERATE = 60 * 1000; // 1min
 
 // ### Logger ###
 var logger = {
@@ -30,40 +27,59 @@ var logger = {
 // ### Main object ###
 let application = {
     startBackgroundLoop: function() {
-        this.onFirstRun();
-        var settingsPrepared = settingsAPI.loadSettings();
-        settingsPrepared.then(function(res) {
-            logger.debug("Prepared");
+        this.setBadgeDefaultValues();
+        settingsAPI.loadSettings().then((res) => {
+            logger.debug("Settings loaded");
             application.update();
         });
     },
-    onFirstRun: function() {
+    setBadgeDefaultValues: function() {
         browser.browserAction.setBadgeText({text: "0"});
         browser.browserAction.setBadgeBackgroundColor({color: "#6441A4"});
     },
     update: function() {
-        application.updateImpl();
-        setTimeout(application.update, settingsAPI.refresh_rate);
+        let refreshRate = settingsAPI.refresh_rate;
+        application.fastUpdate();
+        setTimeout(application.update, refreshRate);
     },
-    updateImpl: function() {
-        var requestDetails = {
-            getNext: true,
-            username: settingsAPI.username_cached,
-            offset: 0
-        }
-        while(requestDetails.getNext) {
-            var requestUrl = twitchAPI.follows.createUrl(requestDetails);
-            var response = twitchAPI.getSync(requestUrl);
-            var parsedResponse = twitchAPI.follows.parse(response);
-            twitchAPI.follows.process(parsedResponse);
+    fastUpdate: function() {
+        // Get inital followers asynchronously
+        let requestUrl = twitchAPI.follows.createUrl({ username: settingsAPI.username_cached, offset: 0 });
+        twitchAPI.getAsync(requestUrl).then((response) => {
+            let parsedResponse = twitchAPI.follows.parse(response.explicitOriginalTarget.response);
+            console.log(parsedResponse);
+            twitchAPI.liveStream.processResult(parsedResponse.follows);
+            let requestDetails = {
+                getNext: (parsedResponse.follows.length > 0),
+                username: settingsAPI.username_cached,
+                offset: parsedResponse.follows.length,
+                total: parsedResponse._total
+            }
+            // Process if more follows present process them
+            while(requestDetails.offset < requestDetails.total) {
+                let requestUrl = twitchAPI.follows.createUrl(requestDetails)
+                requestDetails.offset += parsedResponse.follows.length;
+                twitchAPI.getAsync(requestUrl).then((response) => {
+                    let parsedResponse = twitchAPI.follows.parse(response.explicitOriginalTarget.response);
+                    twitchAPI.liveStream.processResult(parsedResponse.follows);
+                });
+            }
+        });
 
-            if(parsedResponse.follows.length == 0)
-                requestDetails.getNext = false;
-            else
-                requestDetails.offset += 25;
-        }
-        logger.debug("Finished loading follows!");
-        twitchAPI.liveStream.processAll();
+        // while(requestDetails.getNext) {
+        //     let requestUrl = twitchAPI.follows.createUrl(requestDetails);
+
+        //     var response = twitchAPI.getSync(requestUrl);
+        //     var parsedResponse = twitchAPI.follows.parse(response);
+        //     twitchAPI.follows.process(parsedResponse);
+
+        //     if(parsedResponse.follows.length == 0)
+        //         requestDetails.getNext = false;
+        //     else
+        //         requestDetails.offset += 25;
+        // }
+        // logger.debug("Finished loading follows!");
+        // twitchAPI.liveStream.processAll();
     }
 }
 
@@ -162,15 +178,26 @@ let twitchAPI = {
         createUrl: (channelName) => {
             return `https://api.twitch.tv/kraken/streams/${channelName}`;
         },
-        processAll: function() {
-            session.follows.forEach(stream => {
+        processResult: function(follows) {
+            follows.forEach(stream => {
                 var channelUrl = twitchAPI.liveStream.createUrl(stream.channel.name);
                 var channel = twitchAPI.getAsync(channelUrl);
                 channel.then(twitchAPI.liveStream.loaded,twitchAPI.liveStream.notLoaded);
             });
         },
+        // processAll: function() {
+        //     session.follows.forEach(stream => {
+        //         var channelUrl = twitchAPI.liveStream.createUrl(stream.channel.name);
+        //         var channel = twitchAPI.getAsync(channelUrl);
+        //         channel.then(twitchAPI.liveStream.loaded,twitchAPI.liveStream.notLoaded);
+        //     });
+        // },
         loaded: (result) => {
             var parsedResult = JSON.parse(result.explicitOriginalTarget.response);
+            if(parsedResult.hasOwnProperty(status) && parsedResult.status != 200) {
+                console.log("Error while loading stream: " + parsedResult.error + " ,status: " + parsedResult.status);
+                return;
+            }
             var channelOnList = session.live.find(channel => channel._links.self == parsedResult._links.self);
             if(channelOnList !== undefined) { // On the list
                 if (parsedResult.stream === null) { // Need to remove from list
@@ -260,7 +287,7 @@ function getLiveStreams() {
 }
 
 function forceRefresh() {
-    application.updateImpl();
+    application.fastUpdate();
 }
 
 // PUBLIC FUNCTIONS - END
