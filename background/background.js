@@ -30,24 +30,27 @@ let application = {
         this.setBadgeDefaultValues();
         settingsAPI.loadSettings().then((res) => {
             logger.debug("Settings loaded");
-            application.update();
+            application.fastUpdate();
+            passiveUpdateEngine.start();
+            //application.passiveUpdate();
         });
     },
     setBadgeDefaultValues: function() {
         browser.browserAction.setBadgeText({text: "0"});
         browser.browserAction.setBadgeBackgroundColor({color: "#6441A4"});
     },
-    update: function() {
-        let refreshRate = settingsAPI.refresh_rate;
-        application.fastUpdate();
-        setTimeout(application.update, refreshRate);
+    passiveUpdate: function() {
+        //let refreshRate = settingsAPI.refresh_rate;
+        setTimeout(passiveUpdateEngine.start, 180000);
+        //application.fastUpdate();
+        //setTimeout(application.update, refreshRate);
     },
     fastUpdate: function() {
         // Get inital followers asynchronously
         let requestUrl = twitchAPI.follows.createUrl({ username: settingsAPI.username_cached, offset: 0 });
         twitchAPI.getAsync(requestUrl).then((response) => {
             let parsedResponse = twitchAPI.follows.parse(response.explicitOriginalTarget.response);
-            console.log(parsedResponse);
+            //console.log(parsedResponse);
             twitchAPI.liveStream.processResult(parsedResponse.follows);
             let requestDetails = {
                 getNext: (parsedResponse.follows.length > 0),
@@ -55,7 +58,7 @@ let application = {
                 offset: parsedResponse.follows.length,
                 total: parsedResponse._total
             }
-            // Process if more follows present process them
+            // Process remaining follows
             while(requestDetails.offset < requestDetails.total) {
                 let requestUrl = twitchAPI.follows.createUrl(requestDetails)
                 requestDetails.offset += parsedResponse.follows.length;
@@ -65,21 +68,6 @@ let application = {
                 });
             }
         });
-
-        // while(requestDetails.getNext) {
-        //     let requestUrl = twitchAPI.follows.createUrl(requestDetails);
-
-        //     var response = twitchAPI.getSync(requestUrl);
-        //     var parsedResponse = twitchAPI.follows.parse(response);
-        //     twitchAPI.follows.process(parsedResponse);
-
-        //     if(parsedResponse.follows.length == 0)
-        //         requestDetails.getNext = false;
-        //     else
-        //         requestDetails.offset += 25;
-        // }
-        // logger.debug("Finished loading follows!");
-        // twitchAPI.liveStream.processAll();
     }
 }
 
@@ -135,6 +123,51 @@ let settingsAPI = {
     }
 }
 
+let passiveUpdateEngine = {
+    slowUpdateQueue: {
+        followsUrls: [],
+        follows: [],
+    },
+    start: () => {
+        setInterval(passiveUpdateEngine.every5secounds, 5000);
+        setInterval(passiveUpdateEngine.every300secounds, 300000);
+    },
+    every5secounds: () => {
+        if(passiveUpdateEngine.slowUpdateQueue.follows.length > 0) {
+            var followedChannel = passiveUpdateEngine.slowUpdateQueue.follows[0];
+            //console.log("Processing channel:");
+            //console.log(followedChannel);
+            var channelFound = session.follows.find(channel => channel._links.self == followedChannel._links.self)
+            if(channelFound === undefined)
+                session.follows.push(stream);
+            passiveUpdateEngine.slowUpdateQueue.follows.splice(0, 1);
+            var channelUrl = twitchAPI.liveStream.createUrl(followedChannel.channel.name);
+            twitchAPI.getAsync(channelUrl)
+            .then(twitchAPI.liveStream.loaded,twitchAPI.liveStream.notLoaded);
+        }
+    },
+    every300secounds: () => {
+        if(passiveUpdateEngine.slowUpdateQueue.followsUrls.length == 0) {
+            let requestData = { username: settingsAPI.username_cached, offset: 0 }
+            while(requestData.offset < session.follows.length) {
+                let url = twitchAPI.follows.createUrl(requestData);
+                requestData.offset += 25;
+                passiveUpdateEngine.slowUpdateQueue.followsUrls.push(url);
+            }
+        }
+        var followsUrl = passiveUpdateEngine.slowUpdateQueue.followsUrls[0];
+        passiveUpdateEngine.slowUpdateQueue.followsUrls.splice(0, 1);
+        twitchAPI.getAsync(followsUrl).then((response) => {
+            let parsedResponse = twitchAPI.follows.parse(response.explicitOriginalTarget.response);
+            //console.log("Adding follows to queue:");
+            //console.log(parsedResponse.follows);
+            parsedResponse.follows.forEach((channel) => {
+                passiveUpdateEngine.slowUpdateQueue.follows.push(channel);
+            });
+        });
+    }
+}
+
 let twitchAPI = {
     getAsync: (url) => {
         return new Promise(function (resolve, reject) {
@@ -180,18 +213,14 @@ let twitchAPI = {
         },
         processResult: function(follows) {
             follows.forEach(stream => {
+                var channelFound = session.follows.find(channel => channel._links.self == stream._links.self)
+                if(channelFound === undefined)
+                    session.follows.push(stream);
                 var channelUrl = twitchAPI.liveStream.createUrl(stream.channel.name);
-                var channel = twitchAPI.getAsync(channelUrl);
-                channel.then(twitchAPI.liveStream.loaded,twitchAPI.liveStream.notLoaded);
+                twitchAPI.getAsync(channelUrl)
+                .then(twitchAPI.liveStream.loaded,twitchAPI.liveStream.notLoaded);
             });
         },
-        // processAll: function() {
-        //     session.follows.forEach(stream => {
-        //         var channelUrl = twitchAPI.liveStream.createUrl(stream.channel.name);
-        //         var channel = twitchAPI.getAsync(channelUrl);
-        //         channel.then(twitchAPI.liveStream.loaded,twitchAPI.liveStream.notLoaded);
-        //     });
-        // },
         loaded: (result) => {
             var parsedResult = JSON.parse(result.explicitOriginalTarget.response);
             if(parsedResult.hasOwnProperty(status) && parsedResult.status != 200) {
@@ -224,35 +253,6 @@ let twitchAPI = {
         }
     }
     
-}
-
-function runUpdate() {
-    console.log("backend updating");
-    updateFollowers();
-    var checkFollowsUpdateProgress = setInterval(
-        function() {
-            if(followsUpdateInProgress == false) {
-                clearInterval(checkFollowsUpdateProgress);
-                console.log("finished downloading followers");
-
-                updateLiveStreams();
-                var checkLiveStreamsUpdateProgress = setInterval(
-                    function() {
-                        if(liveStreamsUpdateInProgress == false) {
-                            clearInterval(checkLiveStreamsUpdateProgress);
-                            console.log("finished checking live streams");
-                            var update_date = new Date();
-                            lastUpdateDate = update_date.getFullYear() + "/" + update_date.getMonth() + "/" + update_date.getDay() + " " + update_date.getHours() + ":" + update_date.getMinutes() + ":" + update_date.getSeconds();
-                            updateBadge();
-                            needToUpdateFrontEnd = true;
-                        }
-                    },
-                    100
-                );
-            }
-        },
-        100
-    );
 }
 
 // PUBLIC FUNCTIONS - START
