@@ -67,6 +67,7 @@ let application = {
                     twitchAPI.liveStream.processResult(parsedResponse.follows);
                 });
             }
+            notificationEngine.start();
         });
     }
 }
@@ -129,14 +130,12 @@ let passiveUpdateEngine = {
         follows: [],
     },
     start: () => {
-        setInterval(passiveUpdateEngine.every5secounds, 5000);
-        setInterval(passiveUpdateEngine.every300secounds, 300000);
+        setInterval(passiveUpdateEngine.every2secounds, 2000);
+        setInterval(passiveUpdateEngine.every60secounds, 60000);
     },
-    every5secounds: () => {
+    every2secounds: () => {
         if(passiveUpdateEngine.slowUpdateQueue.follows.length > 0) {
             var followedChannel = passiveUpdateEngine.slowUpdateQueue.follows[0];
-            //console.log("Processing channel:");
-            //console.log(followedChannel);
             var channelFound = session.follows.find(channel => channel._links.self == followedChannel._links.self)
             if(channelFound === undefined)
                 session.follows.push(stream);
@@ -146,7 +145,7 @@ let passiveUpdateEngine = {
             .then(twitchAPI.liveStream.loaded,twitchAPI.liveStream.notLoaded);
         }
     },
-    every300secounds: () => {
+    every60secounds: () => {
         if(passiveUpdateEngine.slowUpdateQueue.followsUrls.length == 0) {
             let requestData = { username: settingsAPI.username_cached, offset: 0 }
             while(requestData.offset < session.follows.length) {
@@ -159,12 +158,30 @@ let passiveUpdateEngine = {
         passiveUpdateEngine.slowUpdateQueue.followsUrls.splice(0, 1);
         twitchAPI.getAsync(followsUrl).then((response) => {
             let parsedResponse = twitchAPI.follows.parse(response.explicitOriginalTarget.response);
-            //console.log("Adding follows to queue:");
-            //console.log(parsedResponse.follows);
             parsedResponse.follows.forEach((channel) => {
                 passiveUpdateEngine.slowUpdateQueue.follows.push(channel);
             });
         });
+    }
+}
+
+let notificationEngine = {
+    toNotify: [],
+    start: () => {
+        setInterval(notificationEngine.handler, 10000);
+    },
+    handler: () => {
+        if(notificationEngine.toNotify.length > 0) {
+            let channel = notificationEngine.toNotify[0];
+            let live = notificationEngine.toNotify.length - 1;
+            browser.notifications.create({
+                "type": "basic",
+                "iconUrl": browser.extension.getURL("icons/twitch-48.png"),
+                "title": "Twitch streams",
+                "message": channel + " and " + live + " is live."
+            });
+            notificationEngine.toNotify = [];
+        }
     }
 }
 
@@ -238,6 +255,7 @@ let twitchAPI = {
             else { // Not on the list
                 if (parsedResult.stream !== null) { // stream online and not on the list
                     session.live.push(parsedResult);
+                    notificationEngine.toNotify.push(parsedResult.stream.channel.name);
                     twitchAPI.liveStream.updateBadge();
                 }
             }
@@ -281,7 +299,7 @@ function getLiveStreams() {
     var liveStreams = "";
     var liveChannels = session.live;
     for(let streamIndex = 0; streamIndex < liveChannels.length; streamIndex++) {
-        liveStreams += getLiveStream(liveChannels[streamIndex].stream.channel, liveChannels[streamIndex].stream.viewers, liveChannels[streamIndex].stream.preview.large);
+        liveStreams += getLiveStream(liveChannels[streamIndex].stream.channel, liveChannels[streamIndex].stream.viewers, liveChannels[streamIndex].stream.preview.medium);
     }
     return liveStreams;
 }

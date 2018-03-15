@@ -16,7 +16,7 @@
         "96": "icons/twitch-96.png"
     },
     
-    "permissions": ["storage"],
+    "permissions": ["storage", "notifications"],
 
     "browser_action": {
         "default_icon": {
