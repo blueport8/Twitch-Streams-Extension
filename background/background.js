@@ -88,6 +88,7 @@ let settingsAPI = {
         .then((data) => {
             if (data.twitchStreamsUserName != null) {
                 this.username_cached = data.twitchStreamsUserName;
+                session.username = data.twitchStreamsUserName;
                 logger.debug(`Cached username: ${data.twitchStreamsUserName}`);
             }
             else {
@@ -97,7 +98,7 @@ let settingsAPI = {
         })
         .then((data) => {
             if (data.twitchStreamsRefreshRate != null) {
-                this.refresh_rate = data.twitchStreamsRefreshRate;
+                refresh_rate = data.twitchStreamsRefreshRate;
                 logger.debug(`Refresh rate set to: ${data.twitchStreamsRefreshRate}ms`);
             }
             else {
@@ -118,6 +119,13 @@ let settingsAPI = {
         browser.storage.sync.set({ "twitchStreamsUserName": username })
         .then(() => {
             logger.debug("Succesfully set browser data");
+            this.username_cached = username;
+            session.username = username;
+            session.followsCount = 0;
+            session.follows = [];
+            session.live = [];
+            twitchAPI.liveStream.updateBadge();
+            application.fastUpdate();
         }, () => {
             logger.error("Failed to save browser data");
         });
@@ -171,14 +179,25 @@ let notificationEngine = {
         setInterval(notificationEngine.handler, 10000);
     },
     handler: () => {
-        if(notificationEngine.toNotify.length > 0) {
+        if (notificationEngine.toNotify.length > 1) {
             let channel = notificationEngine.toNotify[0];
             let live = notificationEngine.toNotify.length - 1;
             browser.notifications.create({
                 "type": "basic",
                 "iconUrl": browser.extension.getURL("icons/twitch-48.png"),
                 "title": "Twitch streams",
-                "message": channel + " and " + live + " is live."
+                "message": channel + " and " + live + " other channels are live."
+            });
+            notificationEngine.toNotify = [];
+        }
+        else if (notificationEngine.toNotify.length == 1) {
+            let channel = notificationEngine.toNotify[0];
+            let live = notificationEngine.toNotify.length - 1;
+            browser.notifications.create({
+                "type": "basic",
+                "iconUrl": browser.extension.getURL("icons/twitch-48.png"),
+                "title": "Twitch streams",
+                "message": "Channel " + channel + " is live."
             });
             notificationEngine.toNotify = [];
         }
@@ -262,9 +281,9 @@ let twitchAPI = {
             return parsedResult;
         },
         notLoaded: (error) => {
-            var parsedError = JSON.parse(error);
-            logger.debug(JSON.stringify(parsedError, null, 4));
-            return parsedError;
+            //var parsedError = JSON.parse(error);
+            logger.debug(error);
+            return error;
         },
         updateBadge: () => {
             browser.browserAction.setBadgeText({text: (session.live.length).toString()});

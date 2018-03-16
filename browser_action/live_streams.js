@@ -25,13 +25,16 @@ function longUpdateRateHandler() {
 
 function updateFollows() {
     let session = BACKGROUNDPAGE.getCurrentSession();
-    document.getElementById("active_stream_count").innerHTML = session.live.length;
-    document.getElementById("followed_stream_count").innerHTML = session.follows.length;
+    document.getElementById("active_stream_count").textContent = session.live.length;
+    document.getElementById("followed_stream_count").textContent = session.follows.length;
 }
 
 function updateLiveStreams() {
-    live_stream_container
-    document.getElementById("live_stream_container").innerHTML = BACKGROUNDPAGE.getLiveStreams();
+    const parser = new DOMParser()
+    const parsed = parser.parseFromString(BACKGROUNDPAGE.getLiveStreams(), `text/html`)
+    const tag = parsed.getElementsByTagName(`body`)[0]
+    document.getElementById("live_stream_container").innerHTML = ``
+    document.getElementById("live_stream_container").appendChild(tag)
     updateEventListeners();
 }
 
