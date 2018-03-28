@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Twitch Streams",
-    "version": "0.1",
+    "version": "0.2",
     "description": "Twitch followed streams browser, notifier",
 
     "applications": {
