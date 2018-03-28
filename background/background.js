@@ -32,7 +32,6 @@ let application = {
             logger.debug("Settings loaded");
             application.fastUpdate();
             passiveUpdateEngine.start();
-            //application.passiveUpdate();
         });
     },
     setBadgeDefaultValues: function() {
@@ -40,10 +39,7 @@ let application = {
         browser.browserAction.setBadgeBackgroundColor({color: "#6441A4"});
     },
     passiveUpdate: function() {
-        //let refreshRate = settingsAPI.refresh_rate;
         setTimeout(passiveUpdateEngine.start, 180000);
-        //application.fastUpdate();
-        //setTimeout(application.update, refreshRate);
     },
     fastUpdate: function() {
         // Get inital followers asynchronously
@@ -134,9 +130,10 @@ let settingsAPI = {
 
 let passiveUpdateEngine = {
     slowUpdateQueue: {
-        followsUrls: [],
-        follows: [],
+        followsUrls: [], // quequed urls
+        follows: [] // queued follows
     },
+    followsProcessed: [], // follows already processed in this slow update run
     start: () => {
         setInterval(passiveUpdateEngine.every2secounds, 2000);
         setInterval(passiveUpdateEngine.every60secounds, 60000);
@@ -144,18 +141,22 @@ let passiveUpdateEngine = {
     every2secounds: () => {
         if(passiveUpdateEngine.slowUpdateQueue.follows.length > 0) {
             var followedChannel = passiveUpdateEngine.slowUpdateQueue.follows[0];
-            var channelFound = session.follows.find(channel => channel._links.self == followedChannel._links.self)
-            if(channelFound === undefined)
-                session.follows.push(stream);
             passiveUpdateEngine.slowUpdateQueue.follows.splice(0, 1);
+            passiveUpdateEngine.followsProcessed.push(followedChannel);
             var channelUrl = twitchAPI.liveStream.createUrl(followedChannel.channel.name);
             twitchAPI.getAsync(channelUrl)
-            .then(twitchAPI.liveStream.loaded,twitchAPI.liveStream.notLoaded);
+                .then(twitchAPI.liveStream.loaded,twitchAPI.liveStream.notLoaded);
         }
     },
     every60secounds: () => {
         if(passiveUpdateEngine.slowUpdateQueue.followsUrls.length == 0) {
             let requestData = { username: settingsAPI.username_cached, offset: 0 }
+            // Check if any data was processed in last run if so, update session follows count
+            if(passiveUpdateEngine.followsProcessed.length > 0) {
+                session.follows = passiveUpdateEngine.followsProcessed;
+                passiveUpdateEngine.followsProcessed = [];
+            }
+            // Generate new downlaod links
             while(requestData.offset < session.follows.length) {
                 let url = twitchAPI.follows.createUrl(requestData);
                 requestData.offset += 25;
@@ -237,7 +238,7 @@ let twitchAPI = {
             session.username = settingsAPI.username_cached;
             session.followsCount = parsedResponse._total;
             parsedResponse.follows.forEach((stream) => {
-                var channelFound = session.follows.find(channel => channel._links.self == stream._links.self)
+                let channelFound = session.follows.find(channel => channel._links.self == stream._links.self)
                 if(channelFound === undefined)
                     session.follows.push(stream);
             });
@@ -249,8 +250,8 @@ let twitchAPI = {
         },
         processResult: function(follows) {
             follows.forEach(stream => {
-                var channelFound = session.follows.find(channel => channel._links.self == stream._links.self)
-                if(channelFound === undefined)
+                var channelIndex = session.follows.findIndex(channel => channel._links.self == stream._links.self)
+                if(channelIndex == -1)
                     session.follows.push(stream);
                 var channelUrl = twitchAPI.liveStream.createUrl(stream.channel.name);
                 twitchAPI.getAsync(channelUrl)
@@ -263,16 +264,19 @@ let twitchAPI = {
                 console.log("Error while loading stream: " + parsedResult.error + " ,status: " + parsedResult.status);
                 return;
             }
-            var channelOnList = session.live.find(channel => channel._links.self == parsedResult._links.self);
-            if(channelOnList !== undefined) { // On the list
-                if (parsedResult.stream === null) { // Need to remove from list
-                    var index = session.live.indexOf(channelOnList);
-                    session.live.splice(index, 1);
+            let channelIndex = session.live.findIndex(channel => channel._links.self == parsedResult._links.self);
+            if(channelIndex !== -1) { // On the list
+                if (parsedResult.stream === null) { // Offline - need to remove from list
+                    session.live.splice(channelIndex, 1);
                     twitchAPI.liveStream.updateBadge();
+                }
+                else
+                { // Update channel to new version
+                    session.live[channelIndex].stream = parsedResult.stream;
                 }
             }
             else { // Not on the list
-                if (parsedResult.stream !== null) { // stream online and not on the list
+                if (parsedResult.stream !== null) { // Stream live and not on the list - add to list
                     session.live.push(parsedResult);
                     notificationEngine.toNotify.push(parsedResult.stream.channel.name);
                     twitchAPI.liveStream.updateBadge();
