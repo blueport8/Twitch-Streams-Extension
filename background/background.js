@@ -321,6 +321,12 @@ function getUsername() {
 function getLiveStreams() {
     var liveStreams = "";
     var liveChannels = session.live;
+    // sort live streams before displaying
+    liveChannels.sort((streamA, streamB) => {
+        if (streamA.stream.viewers < streamB.stream.viewers) return 1;
+        if (streamA.stream.viewers > streamB.stream.viewers) return -1;
+        return 0;
+    });
     for(let streamIndex = 0; streamIndex < liveChannels.length; streamIndex++) {
         liveStreams += getLiveStream(liveChannels[streamIndex].stream.channel, liveChannels[streamIndex].stream.viewers, liveChannels[streamIndex].stream.preview.medium);
     }

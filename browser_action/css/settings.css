@@ -6,6 +6,18 @@
     color: #6441a4;
 }
 
+.radio_row {
+    display: flex;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 14px;
+    color: #6441a4;
+    align-items: center;
+}
+
+.sort_direction {
+    margin: 4px 5px 3px 0px;
+}
+
 .setting_row p {
     font-weight: bold;
     margin-block-start: 0.5em;
@@ -57,6 +69,21 @@
 
 #update_date {
     margin-left: 3px;
+}
+
+
+#sort_options {
+    margin-bottom: 5px;
+    width: 150px;
+    height: 25px;
+    border: 0;
+    margin-bottom: 0;
+}
+#sort_options_container {
+    display: flex;
+    width: 150px;
+    border: 1px #6441a4 solid;
+    margin-bottom: 5px;
 }
 
 #freepik_credit {
