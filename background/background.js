@@ -76,30 +76,29 @@ let session = {
 }
 
 let settingsAPI = {
+    // Foreground
     username_cached: "",
+    sorting_field: "Viewers",
+    sorting_direction: "desc",
+    // Background
     refresh_rate: 60000,
 
     loadSettings: function() {
         return this.fetchBrowserData()
         .then((data) => {
-            if (data.twitchStreamsUserName != null) {
-                this.username_cached = data.twitchStreamsUserName;
-                session.username = data.twitchStreamsUserName;
-                logger.debug(`Cached username: ${data.twitchStreamsUserName}`);
-            }
-            else {
-                logger.debug("Username not found in browser data");
-            }
+            settingsAPI.username_handler(data);
             return data;
         })
         .then((data) => {
-            if (data.twitchStreamsRefreshRate != null) {
-                refresh_rate = data.twitchStreamsRefreshRate;
-                logger.debug(`Refresh rate set to: ${data.twitchStreamsRefreshRate}ms`);
-            }
-            else {
-                logger.debug(`Using default refresh rate: ${this.refresh_rate}ms`);
-            }
+            settingsAPI.refresh_rate_handler(data);
+            return data;
+        })
+        .then((data) => {
+            settingsAPI.sorting_field_handler(data);
+            return data;
+        })
+        .then((data) => {
+            settingsAPI.sorting_direction_handler(data);
         });
     },
     fetchBrowserData: function() {
@@ -111,20 +110,58 @@ let settingsAPI = {
             logger.error(`Failed to load browser settings: ${err}`);
         });
     },
-    setBrowserData: function(username) {
-        browser.storage.sync.set({ "twitchStreamsUserName": username })
-        .then(() => {
-            logger.debug("Succesfully set browser data");
-            this.username_cached = username;
-            session.username = username;
-            session.followsCount = 0;
-            session.follows = [];
-            session.live = [];
-            twitchAPI.liveStream.updateBadge();
-            application.fastUpdate();
-        }, () => {
-            logger.error("Failed to save browser data");
-        });
+    setBrowserData: function(settingsSnapshot) {
+        browser.storage.sync.set({ "twitchStreamsUserName": settingsSnapshot.username });
+        browser.storage.sync.set({ "twitchStreamsSortingField": settingsSnapshot.sortingField });
+        browser.storage.sync.set({ "twitchStreamsSortingDirection": settingsSnapshot.sortingDirection });
+        logger.debug("Succesfully set browser data");
+        this.username_cached = settingsSnapshot.username;
+        this.sorting_field = settingsSnapshot.sortingField;
+        this.sorting_direction = settingsSnapshot.sortingDirection;
+        session.username = settingsSnapshot.username;
+        session.followsCount = 0;
+        session.follows = [];
+        session.live = [];
+        twitchAPI.liveStream.updateBadge();
+        application.fastUpdate();
+    },
+    // Settings processors
+    username_handler: function(data) {
+        if (data.twitchStreamsUserName != null) {
+                this.username_cached = data.twitchStreamsUserName;
+                session.username = data.twitchStreamsUserName;
+                logger.debug(`Cached username: ${data.twitchStreamsUserName}`);
+        }
+        else {
+            logger.debug("Username not found in browser data");
+        }
+    },
+    refresh_rate_handler: function(data) {
+        if (data.twitchStreamsRefreshRate != null) {
+                this.refresh_rate = data.twitchStreamsRefreshRate;
+                logger.debug(`Refresh rate set to: ${data.twitchStreamsRefreshRate}ms`);
+        }
+        else {
+            logger.debug(`Using default refresh rate: ${this.refresh_rate}ms`);
+        }
+    },
+    sorting_field_handler: function(data) {
+        if (data.twitchStreamsSortingField != null) {
+            this.sorting_field = data.twitchStreamsSortingField;
+            logger.debug(`Loaded sorting field ${data.twitchStreamsSortingField}`);
+        }
+        else {
+            logger.debug(`Sorting field not found. Using default: ${this.sorting_field}`);
+        }
+    },
+    sorting_direction_handler: function(data) {
+        if (data.twitchStreamsSortingDirection != null) {
+            this.sorting_direction = data.twitchStreamsSortingDirection;
+            logger.debug(`Loaded sorting direction ${data.twitchStreamsSortingDirection}`);
+        }
+        else {
+            logger.debug(`Sorting direction not found. Using default: ${this.sorting_field}`);
+        }
     }
 }
 
@@ -310,8 +347,16 @@ function getFollowsCount() {
     return userFollows.length;
 }
 
-function setUsername(username) {
-    settingsAPI.setBrowserData(username);
+function saveSettings(settingsSnapshot) {
+    settingsAPI.setBrowserData(settingsSnapshot);
+}
+
+function getSettings() {
+    return {
+        username: settingsAPI.username_cached,
+        sortingField: settingsAPI.sorting_field,
+        sortingDirection: settingsAPI.sorting_direction
+    }
 }
 
 function getUsername() {
@@ -322,11 +367,12 @@ function getLiveStreams() {
     var liveStreams = "";
     var liveChannels = session.live;
     // sort live streams before displaying
-    liveChannels.sort((streamA, streamB) => {
-        if (streamA.stream.viewers < streamB.stream.viewers) return 1;
-        if (streamA.stream.viewers > streamB.stream.viewers) return -1;
-        return 0;
-    });
+    // liveChannels.sort((streamA, streamB) => {
+    //     if (streamA.stream.viewers < streamB.stream.viewers) return 1;
+    //     if (streamA.stream.viewers > streamB.stream.viewers) return -1;
+    //     return 0;
+    // });
+    sortLiveChannels();
     for(let streamIndex = 0; streamIndex < liveChannels.length; streamIndex++) {
         liveStreams += getLiveStream(liveChannels[streamIndex].stream.channel, liveChannels[streamIndex].stream.viewers, liveChannels[streamIndex].stream.preview.medium);
     }
@@ -338,5 +384,58 @@ function forceRefresh() {
 }
 
 // PUBLIC FUNCTIONS - END
+
+function sortLiveChannels() {
+    let liveChannels = session.live;
+    let sortingDirection = settingsAPI.sorting_direction;
+    let sortingField = settingsAPI.sorting_field;
+
+    if (sortingField === "Viewers" && sortingDirection === "desc") {
+        liveChannels.sort((streamA, streamB) => {
+        if (streamA.stream.viewers < streamB.stream.viewers) return 1;
+        if (streamA.stream.viewers > streamB.stream.viewers) return -1;
+        return 0;
+        });
+    }
+    if (sortingField === "Viewers" && sortingDirection === "asc") {
+        liveChannels.sort((streamA, streamB) => {
+        if (streamA.stream.viewers > streamB.stream.viewers) return 1;
+        if (streamA.stream.viewers < streamB.stream.viewers) return -1;
+        return 0;
+        });
+    }
+    if (sortingField === "Channel name" && sortingDirection === "desc") {
+        name
+        liveChannels.sort((streamA, streamB) => {
+        if (streamA.stream.channel.name < streamB.stream.channel.name) return 1;
+        if (streamA.stream.channel.name > streamB.stream.channel.name) return -1;
+        return 0;
+        });
+    }
+    if (sortingField === "Channel name" && sortingDirection === "asc") {
+        name
+        liveChannels.sort((streamA, streamB) => {
+        if (streamA.stream.channel.name > streamB.stream.channel.name) return 1;
+        if (streamA.stream.channel.name < streamB.stream.channel.name) return -1;
+        return 0;
+        });
+    }
+    if (sortingField === "Game" && sortingDirection === "desc") {
+        name
+        liveChannels.sort((streamA, streamB) => {
+        if (streamA.stream.game < streamB.stream.game) return 1;
+        if (streamA.stream.game > streamB.stream.game) return -1;
+        return 0;
+        });
+    }
+    if (sortingField === "Game" && sortingDirection === "asc") {
+        name
+        liveChannels.sort((streamA, streamB) => {
+        if (streamA.stream.game > streamB.stream.game) return 1;
+        if (streamA.stream.game < streamB.stream.game) return -1;
+        return 0;
+        });
+    }
+}
 
 application.startBackgroundLoop();

@@ -17,14 +17,11 @@
         </div>
         <form>
             <div class="setting_row" id="sort_options_container">
-                <select id="sort_options">
-                    <option value="views">Viewers</option>
-                    <option value="channel_name">Channel name</option>
-                </select>
+                <select id="sort_options"></select>
             </div>
             <div class="radio_row">
-                <input class="sort_direction" type="radio" name="gender" value="desc" checked>Descending
-                <input class="sort_direction" style="margin-left: 10px;" type="radio" name="gender" value="asc">Ascending
+                <input class="sort_direction" id="sort_direction_desc" name="direction" type="radio" value="desc" checked>Descending
+                <input class="sort_direction" id="sort_direction_asc" name="direction" type="radio" value="asc" style="margin-left: 10px;">Ascending
             </div>
         </form>
         <!-- Save button -->
