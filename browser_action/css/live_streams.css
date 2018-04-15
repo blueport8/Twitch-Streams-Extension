@@ -98,6 +98,12 @@ body {
     flex-wrap: wrap;
 }
 
+.channel_uptime {
+    color: #6161613d;
+    font-size: 11px;
+    flex-wrap: wrap;
+}
+
 .channel_name_viewers_row {
     display: flex;
     justify-content: space-between;

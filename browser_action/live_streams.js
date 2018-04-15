@@ -2,26 +2,9 @@
 // Background access
 let BACKGROUNDPAGE = browser.extension.getBackgroundPage();
 
-// Constants
-const DEBUG = false;
-const LONG_UPDATERATE =  10000; // 10s
-const SHORT_UPDATERATE =  1000; // 1s
-
-// Start of application
-shortUpdateRateHandler();
-longUpdateRateHandler();
-setInterval(shortUpdateRateHandler, SHORT_UPDATERATE);
-setInterval(longUpdateRateHandler, LONG_UPDATERATE);
-
-function shortUpdateRateHandler() {
-    console.log("Short update handler fired");
-    updateFollows();
-}
-
-function longUpdateRateHandler() {
-    console.log("Long update handler fired");
-    updateLiveStreams();
-}
+updateLiveStreams();
+updateFollows();
+browser.runtime.onMessage.addListener(beckendUpdateListener);
 
 function updateFollows() {
     let session = BACKGROUNDPAGE.getCurrentSession();
@@ -36,6 +19,17 @@ function updateLiveStreams() {
     document.getElementById("live_stream_container").innerHTML = ``
     document.getElementById("live_stream_container").appendChild(tag)
     updateEventListeners();
+}
+
+function beckendUpdateListener(request, sender, sendResponse) {
+    if (request.subject === "update_stream_list") {
+        console.log("Received stream update message");
+        updateLiveStreams();
+        updateFollows();
+    } else if (request.subject === "update_live_follows_count") {
+        console.log("Received live stream count and follow count update");
+        updateFollows();
+    }
 }
 
 function updateEventListeners() {

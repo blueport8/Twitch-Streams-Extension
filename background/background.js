@@ -279,6 +279,7 @@ let twitchAPI = {
                 if(channelFound === undefined)
                     session.follows.push(stream);
             });
+            browser.runtime.sendMessage({ "subject": "update_live_follows_count" });
         }
     },
     liveStream: {
@@ -306,10 +307,12 @@ let twitchAPI = {
                 if (parsedResult.stream === null) { // Offline - need to remove from list
                     session.live.splice(channelIndex, 1);
                     twitchAPI.liveStream.updateBadge();
+                    browser.runtime.sendMessage({ "subject": "update_stream_list" });
                 }
                 else
                 { // Update channel to new version
                     session.live[channelIndex].stream = parsedResult.stream;
+                    browser.runtime.sendMessage({ "subject": "update_stream_list" });
                 }
             }
             else { // Not on the list
@@ -317,6 +320,7 @@ let twitchAPI = {
                     session.live.push(parsedResult);
                     notificationEngine.toNotify.push(parsedResult.stream.channel.name);
                     twitchAPI.liveStream.updateBadge();
+                    browser.runtime.sendMessage({ "subject": "update_stream_list" });
                 }
             }
             return parsedResult;
@@ -366,15 +370,10 @@ function getUsername() {
 function getLiveStreams() {
     var liveStreams = "";
     var liveChannels = session.live;
-    // sort live streams before displaying
-    // liveChannels.sort((streamA, streamB) => {
-    //     if (streamA.stream.viewers < streamB.stream.viewers) return 1;
-    //     if (streamA.stream.viewers > streamB.stream.viewers) return -1;
-    //     return 0;
-    // });
     sortLiveChannels();
     for(let streamIndex = 0; streamIndex < liveChannels.length; streamIndex++) {
-        liveStreams += getLiveStream(liveChannels[streamIndex].stream.channel, liveChannels[streamIndex].stream.viewers, liveChannels[streamIndex].stream.preview.medium);
+        let uptime = calculateUptime(liveChannels[streamIndex].stream.created_at);
+        liveStreams += getLiveStream(liveChannels[streamIndex].stream.channel, liveChannels[streamIndex].stream.viewers, liveChannels[streamIndex].stream.preview.medium, uptime);
     }
     return liveStreams;
 }
@@ -384,6 +383,36 @@ function forceRefresh() {
 }
 
 // PUBLIC FUNCTIONS - END
+
+function calculateUptime(uptimeRaw) {
+    let channelWentLive = new Date(uptimeRaw);
+    let uptime = timeSince(channelWentLive);
+    let uptimeString = "";
+    if(uptime.days > 0) {
+        uptimeString += uptime.days + "d "
+    }
+    var hours = (new String(uptime.hours)).padStart(2, "0");
+    var minutes = (new String(uptime.minutes)).padStart(2, "0");
+    var seconds = (new String(uptime.seconds)).padStart(2, "0");
+    uptimeString += `${hours}:${minutes}:${seconds}`;
+    return uptimeString;
+}
+
+function timeSince(when) { // this ignores months
+    var obj = {};
+    obj._milliseconds = (new Date()).valueOf() - when.valueOf();
+    obj.milliseconds = obj._milliseconds % 1000;
+    obj._seconds = (obj._milliseconds - obj.milliseconds) / 1000;
+    obj.seconds = obj._seconds % 60;
+    obj._minutes = (obj._seconds - obj.seconds) / 60;
+    obj.minutes = obj._minutes % 60;
+    obj._hours = (obj._minutes - obj.minutes) / 60;
+    obj.hours = obj._hours % 24;
+    obj._days = (obj._hours - obj.hours) / 24;
+    obj.days = obj._days % 365;
+    obj.years = (obj._days - obj.days) / 365;
+    return obj;
+}
 
 function sortLiveChannels() {
     let liveChannels = session.live;

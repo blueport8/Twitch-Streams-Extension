@@ -1,16 +1,16 @@
-function getLiveStream(streamerData, viewers, previewImageUrl){
+function getLiveStream(streamerData, viewers, previewImageUrl, uptime){
     return `
         <a href="#" class="stream_link">
-            ${buildStreamFrame(streamerData, viewers, previewImageUrl)}
+            ${buildStreamFrame(streamerData, viewers, previewImageUrl, uptime)}
         </a>
     `;
 }
 
-function buildStreamFrame(streamerData, viewers, previewImageUrl) {
+function buildStreamFrame(streamerData, viewers, previewImageUrl, uptime) {
     return `
         <div class="stream_frame">
             <div class="live_stream_information_frame">
-                ${buildStreamInformationFrame(streamerData, viewers)}
+                ${buildStreamInformationFrame(streamerData, viewers, uptime)}
             </div>
             <div class="live_stream_image">
                 ${buildStreamImageFrame(previewImageUrl)}
@@ -19,7 +19,7 @@ function buildStreamFrame(streamerData, viewers, previewImageUrl) {
     `;
 }
 
-function buildStreamInformationFrame(streamerData, viewers) {
+function buildStreamInformationFrame(streamerData, viewers, uptime) {
     return `
         <div class="channel_name_viewers_row">
             <div class="channel_name">${streamerData.name}</div>
@@ -27,6 +27,7 @@ function buildStreamInformationFrame(streamerData, viewers) {
         </div>
         <div class="channel_game">${streamerData.game}</div>
         <div class="channel_title">${streamerData.status}</div>
+        <div class="channel_uptime">Uptime ${uptime}</div>
     `
 }
 
