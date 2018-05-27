@@ -36,7 +36,7 @@ function updateEventListeners() {
     let links = document.getElementsByClassName("stream_link");
     for(let linkIndex = 0; linkIndex < links.length; linkIndex++) {
         let link = links[linkIndex];
-        let channel_name_list = link.getElementsByClassName("channel_name");
+        let channel_name_list = link.getElementsByClassName("upper_channel_name");
         let channel_name = channel_name_list[0];
 
         link.onclick = (function() {

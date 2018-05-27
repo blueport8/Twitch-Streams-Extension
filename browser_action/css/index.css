@@ -29,6 +29,8 @@ body {
     color: rgb(247, 247, 247);
     padding: 5px 10px 5px 10px;
     background-color: #6441a4;
+    align-items: center;
+    display: flex;
 }
 
 .tab > img {
@@ -51,7 +53,6 @@ body {
 }
 
 #content_iframe {
-    margin-top: 5px;
     width:390;
     height:450px;
     overflow: auto;

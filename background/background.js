@@ -218,13 +218,29 @@ let notificationEngine = {
     },
     handler: () => {
         if (notificationEngine.toNotify.length > 1) {
+            let live_to_show = "";
+            let names_to_add = 5;
+            if (notificationEngine.toNotify.length < 5) {
+                names_to_add = notificationEngine.toNotify.length
+            }
+            for (var i = names_to_add - 1; i >= 0; i--) {
+                live_to_show += notificationEngine.toNotify[i] + ", ";
+            }
+            live_to_show = live_to_show.substring(0, live_to_show.length - 1);
+
             let channel = notificationEngine.toNotify[0];
-            let live = notificationEngine.toNotify.length - 1;
+            let live = notificationEngine.toNotify.length - names_to_add;
+            let message = "";
+            if(live > 0){
+                message = live_to_show + " and " + live + " other channels are live.";
+            } else {
+                message = live_to_show + " are live."
+            }
             browser.notifications.create({
                 "type": "basic",
                 "iconUrl": browser.extension.getURL("icons/twitch-48.png"),
                 "title": "Twitch streams",
-                "message": channel + " and " + live + " other channels are live."
+                "message": message
             });
             notificationEngine.toNotify = [];
         }
@@ -391,10 +407,10 @@ function calculateUptime(uptimeRaw) {
     if(uptime.days > 0) {
         uptimeString += uptime.days + "d "
     }
-    var hours = (new String(uptime.hours)).padStart(2, "0");
+    var hours = (new String(uptime.hours));
     var minutes = (new String(uptime.minutes)).padStart(2, "0");
     var seconds = (new String(uptime.seconds)).padStart(2, "0");
-    uptimeString += `${hours}:${minutes}:${seconds}`;
+    uptimeString += `${hours}h${minutes}m`;
     return uptimeString;
 }
 

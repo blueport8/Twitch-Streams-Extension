@@ -2,21 +2,41 @@ body {
     background: #f4f4f4;
     width: 370px;
     margin: 0px;
-    overflow-y: scroll;
-    overflow-x: hidden;
 }
 .flex_row {
     display: flex;
 }
 
+/* remove scroolbars */
+.element,
+.outer-container {
+  width: 360px;
+  height: 450px;
+}
+.outer-container {
+  position: relative;
+  overflow: hidden;
+}
+.inner-container {
+  display: flex;
+  position: absolute;
+  left: 0;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  padding-right: 150px;
+}
+.inner-container::-webkit-scrollbar {
+  display: none;
+}
+/* remove scroolbars */
+
 .statistics {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin-top: 3px;
-    margin-bottom: 3px;
-    border-bottom: 1px solid lightgray;
-    border-top: 1px solid lightgray;
+    margin-bottom: 2px;
+    margin-top: 2px;
     padding-top: 1px;
     padding-bottom: 1px;
+    justify-content: space-around;
 }
 
 .live_count {
@@ -25,7 +45,7 @@ body {
 }
 
 .live_count img {
-    margin-right: 2px;
+    margin-right: 3px;
 }
 
 .followed_streams {
@@ -35,6 +55,13 @@ body {
 
 .stat_caption {
     margin-right: 3px;
+    font-weight: 300;
+}
+#active_stream_count {
+    font-weight: 300;
+}
+#followed_stream_count {
+    font-weight: 300;
 }
 
 .followed_heart {
@@ -42,6 +69,45 @@ body {
     fill: #6441a4;
     width: 12px;
     height:12px;
+}
+
+/* New view */
+.upper_frame {
+}
+
+.upper_channel_name {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: inline-block;
+    margin-left: 5px;
+    color: #6441a4;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.upper_channel_viewers {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: inline-block;
+    margin-left: 5px;
+    font-size: 11px;
+    color: #616161;
+}
+
+.upper_channel_uptime {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: inline-block;
+    float: right;
+    color: #616161;
+    font-size: 11px;
+    margin-right: 18px;
+    padding-top: 6px;
+}
+
+.stream_header_separator {
+    margin-left: 5px;
+    margin-right: 18px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    border-top: 1px solid rgba(100, 65, 164, 0.3);
 }
 
 .stream_frame {
@@ -64,7 +130,7 @@ body {
     align-self: flex-start;
     width: 70%;
     padding-right: 3px;
-    padding-left: 5px;
+    padding-left: 3px;
 }
 
 .live_stream_image {
@@ -76,23 +142,19 @@ body {
     text-decoration: none;
 }
 
-.channel_name {
-    color: #6441a4;
-    font-weight: bold;
-    font-size: 14px;
-}
-
 .channel_image {
     max-width:100%;
     max-height:100%;
 }
 
 .channel_game {
+    font-weight: 600;
     color: #616161;
     font-size: 12px;
 }
 
 .channel_title {
+    font-weight: 400;
     color: #616161;
     font-size: 11px;
     flex-wrap: wrap;
@@ -102,11 +164,6 @@ body {
     color: #6161613d;
     font-size: 11px;
     flex-wrap: wrap;
-}
-
-.channel_name_viewers_row {
-    display: flex;
-    justify-content: space-between;
 }
 
 .channel_viewers {
