@@ -75,6 +75,16 @@ let session = {
     live: []
 }
 
+let popup_state_handler = {
+    popup_opened: false,
+    popup_close_event_handler: function() {
+        popup_state_handler.popup_opened = false;
+    },
+    popup_open_event_handler: function() {
+        popup_state_handler.popup_opened = true;
+    }
+}
+
 let settingsAPI = {
     // Foreground
     username_cached: "",
@@ -323,12 +333,12 @@ let twitchAPI = {
                 if (parsedResult.stream === null) { // Offline - need to remove from list
                     session.live.splice(channelIndex, 1);
                     twitchAPI.liveStream.updateBadge();
-                    browser.runtime.sendMessage({ "subject": "update_stream_list" });
+                    if(popup_state_handler.popup_opened) browser.runtime.sendMessage({ "subject": "update_stream_list" });
                 }
                 else
                 { // Update channel to new version
                     session.live[channelIndex].stream = parsedResult.stream;
-                    browser.runtime.sendMessage({ "subject": "update_stream_list" });
+                    if(popup_state_handler.popup_opened) browser.runtime.sendMessage({ "subject": "update_stream_list" });
                 }
             }
             else { // Not on the list
@@ -336,7 +346,7 @@ let twitchAPI = {
                     session.live.push(parsedResult);
                     notificationEngine.toNotify.push(parsedResult.stream.channel.name);
                     twitchAPI.liveStream.updateBadge();
-                    browser.runtime.sendMessage({ "subject": "update_stream_list" });
+                    if(popup_state_handler.popup_opened) browser.runtime.sendMessage({ "subject": "update_stream_list" });
                 }
             }
             return parsedResult;
@@ -480,6 +490,18 @@ function sortLiveChannels() {
         if (streamA.stream.game < streamB.stream.game) return -1;
         return 0;
         });
+    }
+}
+
+// ### Event listeners ###
+let messages = {
+    "frontend_popup_closed": popup_state_handler.popup_close_event_handler,
+    "frontend_popup_opened": popup_state_handler.popup_open_event_handler
+};
+browser.runtime.onMessage.addListener(messageReceived);
+function messageReceived(message){
+    if(messages.hasOwnProperty(message.title)){
+        messages[message.title]();
     }
 }
 

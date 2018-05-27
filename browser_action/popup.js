@@ -31,3 +31,14 @@ function closePopup(message) {
         window.close();
     }
 }
+
+window.addEventListener('unload', function(event) {
+    // browser.runtime.sendMessage caused an error - this is a workaround
+    BACKGROUNDPAGE.messageReceived({"title": "frontend_popup_closed"});
+}, false);
+
+window.addEventListener('load', function(event) {
+    browser.runtime.sendMessage({"title": "frontend_popup_opened"});
+}, false);
+
+
