@@ -2,15 +2,8 @@
 // Background access
 let BACKGROUNDPAGE = browser.extension.getBackgroundPage();
 
-updateLiveStreams();
-updateFollows();
+ updateLiveStreams();
 browser.runtime.onMessage.addListener(beckendUpdateListener);
-
-function updateFollows() {
-    let session = BACKGROUNDPAGE.getCurrentSession();
-    document.getElementById("active_stream_count").textContent = session.live.length;
-    document.getElementById("followed_stream_count").textContent = session.follows.length;
-}
 
 function updateLiveStreams() {
     const parser = new DOMParser()
@@ -25,10 +18,6 @@ function beckendUpdateListener(request, sender, sendResponse) {
     if (request.subject === "update_stream_list") {
         console.log("Received stream update message");
         updateLiveStreams();
-        updateFollows();
-    } else if (request.subject === "update_live_follows_count") {
-        console.log("Received live stream count and follow count update");
-        updateFollows();
     }
 }
 

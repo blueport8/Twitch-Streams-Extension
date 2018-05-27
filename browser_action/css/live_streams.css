@@ -30,47 +30,6 @@ body {
 }
 /* remove scroolbars */
 
-.statistics {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin-bottom: 2px;
-    margin-top: 2px;
-    padding-top: 1px;
-    padding-bottom: 1px;
-    justify-content: space-around;
-}
-
-.live_count {
-    align-items: baseline;
-    margin-left: 7px;
-}
-
-.live_count img {
-    margin-right: 3px;
-}
-
-.followed_streams {
-    align-items: baseline;
-    margin-left: 20px;
-}
-
-.stat_caption {
-    margin-right: 3px;
-    font-weight: 300;
-}
-#active_stream_count {
-    font-weight: 300;
-}
-#followed_stream_count {
-    font-weight: 300;
-}
-
-.followed_heart {
-    margin-right: 3px;
-    fill: #6441a4;
-    width: 12px;
-    height:12px;
-}
-
 /* New view */
 .upper_frame {
 }
@@ -169,4 +128,8 @@ body {
 .channel_viewers {
     font-size: 11px;
     color: #616161;
+}
+
+#live_stream_container {
+    margin-top: 5px;
 }

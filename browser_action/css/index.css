@@ -57,3 +57,44 @@ body {
     height:450px;
     overflow: auto;
 }
+
+
+.statistics {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    justify-content: space-around;
+    background-color: rgb(229, 229, 229);
+}
+
+.live_count {
+    align-items: baseline;
+    margin-left: 7px;
+}
+
+.live_count img {
+    margin-right: 3px;
+}
+
+.followed_streams {
+    align-items: baseline;
+    margin-left: 20px;
+}
+
+.stat_caption {
+    margin-right: 3px;
+    font-weight: 300;
+}
+#active_stream_count {
+    font-weight: 300;
+}
+#followed_stream_count {
+    font-weight: 300;
+}
+
+.followed_heart {
+    margin-right: 3px;
+    fill: #6441a4;
+    width: 12px;
+    height:12px;
+}

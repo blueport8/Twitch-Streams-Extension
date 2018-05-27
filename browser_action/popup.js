@@ -42,3 +42,34 @@ window.addEventListener('load', function(event) {
 }, false);
 
 
+updateFollows();
+browser.runtime.onMessage.addListener(beckendUpdateListener);
+
+function updateFollows() {
+    let session = BACKGROUNDPAGE.getCurrentSession();
+    document.getElementById("active_stream_count").textContent = session.live.length;
+    document.getElementById("followed_stream_count").textContent = session.follows.length;
+}
+
+function beckendUpdateListener(request, sender, sendResponse) {
+    if (request.subject === "update_live_follows_count" || request.subject === "update_stream_list") {
+        console.log("Received live stream count and follow count update");
+        updateFollows();
+    }
+}
+
+function updateEventListeners() {
+    let links = document.getElementsByClassName("stream_link");
+    for(let linkIndex = 0; linkIndex < links.length; linkIndex++) {
+        let link = links[linkIndex];
+        let channel_name_list = link.getElementsByClassName("upper_channel_name");
+        let channel_name = channel_name_list[0];
+
+        link.onclick = (function() {
+            let local_channel_name = channel_name.innerHTML;
+            return () => {
+                openStream(local_channel_name);
+            }
+        })();
+    }
+}
