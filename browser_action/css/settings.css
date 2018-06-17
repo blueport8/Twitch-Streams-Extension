@@ -29,10 +29,21 @@
     margin-left: 3px;
 }
 
+.notification_option_row_with_title {
+    display: flex;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 14px;
+    color: #6441a4;
+}
+
 #checkbox-show-notif {
     margin-top: 5px;
     margin-right: 5px;
-    margin-left: 0px;
+    margin-left: 2px;
+}
+#checkbox-show-thumbnails {
+    margin-left: 5px;
+    margin-top: 5px;
 }
 
 .sort_direction {

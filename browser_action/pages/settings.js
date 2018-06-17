@@ -33,6 +33,12 @@ function getSettings() {
 		sortingDirectionDesc.checked = false;
 		sortingDirectionAsc.checked = true;
 	}
+	// Notifications enabled
+	let notificationsEnabledDomElement = document.getElementById("checkbox-show-notif");
+	notificationsEnabledDomElement.checked = settings.notificationsEnabled;
+	// Thumbnails enabled
+	let thumbnailsEnabledDomElement = document.getElementById("checkbox-show-thumbnails");
+	thumbnailsEnabledDomElement.checked = settings.thumbnailsEnabled;
 }
 
 function saveSettings() {
@@ -49,7 +55,9 @@ function saveSettings() {
 	let settingsSnapshot = {
 		username: document.getElementById("user_name").value,
 		sortingField: selectedSortingField,
-		sortingDirection: sortingDirection
+		sortingDirection: sortingDirection,
+		notificationsEnabled: document.getElementById("checkbox-show-notif").checked,
+		thumbnailsEnabled: document.getElementById("checkbox-show-thumbnails").checked
 	};
     BACKGROUNDPAGE.saveSettings(settingsSnapshot);
 }

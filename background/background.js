@@ -90,6 +90,8 @@ let settingsAPI = {
     username_cached: "",
     sorting_field: "Viewers",
     sorting_direction: "desc",
+    notifications_enabled: true,
+    thumbnails_enabled: true,
     // Background
     refresh_rate: 60000,
 
@@ -109,6 +111,14 @@ let settingsAPI = {
         })
         .then((data) => {
             settingsAPI.sorting_direction_handler(data);
+            return data;
+        })
+        .then((data) => {
+            settingsAPI.notifications_enabled_handler(data);
+            return data;
+        })
+        .then((data) => {
+            settingsAPI.thumbnails_enabled_handler(data);
         });
     },
     fetchBrowserData: function() {
@@ -124,10 +134,14 @@ let settingsAPI = {
         browser.storage.sync.set({ "twitchStreamsUserName": settingsSnapshot.username });
         browser.storage.sync.set({ "twitchStreamsSortingField": settingsSnapshot.sortingField });
         browser.storage.sync.set({ "twitchStreamsSortingDirection": settingsSnapshot.sortingDirection });
+        browser.storage.sync.set({ "twitchStreamsNotificationsEnabled": settingsSnapshot.notificationsEnabled });
+        browser.storage.sync.set({ "twitchStreamsThumbnailsEnabled": settingsSnapshot.thumbnailsEnabled });
         logger.debug("Succesfully set browser data");
         this.username_cached = settingsSnapshot.username;
         this.sorting_field = settingsSnapshot.sortingField;
         this.sorting_direction = settingsSnapshot.sortingDirection;
+        this.notifications_enabled = settingsSnapshot.notificationsEnabled;
+        this.thumbnails_enabled = settingsSnapshot.thumbnailsEnabled;
         session.username = settingsSnapshot.username;
         session.followsCount = 0;
         session.follows = [];
@@ -171,6 +185,24 @@ let settingsAPI = {
         }
         else {
             logger.debug(`Sorting direction not found. Using default: ${this.sorting_field}`);
+        }
+    },
+    notifications_enabled_handler: function(data) {
+        if(data.twitchStreamsNotificationsEnabled != null) {
+            this.notifications_enabled = data.twitchStreamsNotificationsEnabled;
+            logger.debug(`Loaded notifications config ${data.twitchStreamsNotificationsEnabled}`);
+        }
+        else {
+            logger.debug(`Notification config not found. Using default: ${this.notifications_enabled}`);
+        }
+    },
+    thumbnails_enabled_handler: function(data) {
+        if(data.twitchStreamsThumbnailsEnabled != null) {
+            this.thumbnails_enabled = data.twitchStreamsThumbnailsEnabled;
+            logger.debug(`Loaded notifications config ${data.twitchStreamsThumbnailsEnabled}`);
+        }
+        else {
+            logger.debug(`Notification config not found. Using default: ${this.thumbnails_enabled}`);
         }
     }
 }
@@ -227,6 +259,10 @@ let notificationEngine = {
         setInterval(notificationEngine.handler, 10000);
     },
     handler: () => {
+        if(!settingsAPI.notifications_enabled) {
+            notificationEngine.toNotify = [];
+            return;
+        }
         if (notificationEngine.toNotify.length > 1) {
             let live_to_show = "";
             let names_to_add = 5;
@@ -385,7 +421,9 @@ function getSettings() {
     return {
         username: settingsAPI.username_cached,
         sortingField: settingsAPI.sorting_field,
-        sortingDirection: settingsAPI.sorting_direction
+        sortingDirection: settingsAPI.sorting_direction,
+        notificationsEnabled: settingsAPI.notifications_enabled,
+        thumbnailsEnabled: settingsAPI.thumbnails_enabled
     }
 }
 
@@ -399,7 +437,7 @@ function getLiveStreams() {
     sortLiveChannels();
     for(let streamIndex = 0; streamIndex < liveChannels.length; streamIndex++) {
         let uptime = calculateUptime(liveChannels[streamIndex].stream.created_at);
-        liveStreams += getLiveStream(liveChannels[streamIndex].stream.channel, liveChannels[streamIndex].stream.viewers, liveChannels[streamIndex].stream.preview.medium, uptime);
+        liveStreams += getLiveStream(liveChannels[streamIndex].stream.channel, liveChannels[streamIndex].stream.viewers, liveChannels[streamIndex].stream.preview.medium, uptime, settingsAPI.thumbnails_enabled);
     }
     return liveStreams;
 }
