@@ -4,24 +4,37 @@
         <link rel="stylesheet" type="text/css" href="../css/settings.css">
     </head>
     <body>
-        <!-- Username -->
+        <!-- Account related -->
+        <p class="settings_section">Twitch account</p>
+        <div class="settings_section_separator"></div>
         <div class="setting_row">
-            <p id="username_label">Twitch username:</p>
+            <p id="username_label">Username:</p>
         </div>
-        <div class="setting_row">
+        <div class="setting_row" style="margin-bottom: 5px;">
             <input id="user_name" type="text" name="fname">
         </div>
         <!-- Stream sorting -->
+        <p class="settings_section">Live stream list</p>
+        <div class="settings_section_separator"></div>
         <div class="setting_row">
-            <p id="username_label">Sort streams by:</p>
+            <p id="username_label">Sort by:</p>
         </div>
         <form>
             <div class="setting_row" id="sort_options_container">
                 <select id="sort_options"></select>
             </div>
-            <div class="radio_row">
+            <div class="setting_row">
+                    <p id="username_label">Order:</p>
+                </div>
+            <div class="radio_row" style="margin-bottom: 5px;">
                 <input class="sort_direction" id="sort_direction_desc" name="direction" type="radio" value="desc" checked>Descending
                 <input class="sort_direction" id="sort_direction_asc" name="direction" type="radio" value="asc" style="margin-left: 10px;">Ascending
+            </div>
+            <!-- Notifications -->
+            <p class="settings_section">Notifications</p>
+            <div class="settings_section_separator"></div>
+            <div class="notification_option_row" style="margin-bottom: 5px;">
+                <input type="checkbox" name="show_notifications" id="checkbox-show-notif" checked>Show notifications<br>
             </div>
         </form>
         <!-- Save button -->
