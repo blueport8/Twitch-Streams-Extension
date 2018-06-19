@@ -94,7 +94,7 @@ body {
 
 .live_stream_image {
     width: 30%;
-    align-items: center
+    align-items: center;
 }
 
 .stream_link {
@@ -104,6 +104,8 @@ body {
 .channel_image {
     max-width:100%;
     max-height:100%;
+    opacity: 0;
+	transition: opacity 0.8s;
 }
 
 .channel_game {

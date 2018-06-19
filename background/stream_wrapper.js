@@ -35,6 +35,13 @@ function buildStreamInformationFrame(streamerData, viewers, uptime) {
 
 function buildStreamImageFrame(imageUrl) {
     return `
-        <img src="${imageUrl}" class="channel_image"></img>
+        <img src="${imageUrl}" class="channel_image" id="${uuidv4()}"></img>
     `
 }
+
+// Helper function
+function uuidv4() {
+    return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+      (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+    )
+  }
