@@ -46,7 +46,6 @@ function updateEventListeners() {
             }
         })();
     }
-    
 }
 
 function openStream(channel_name) {
