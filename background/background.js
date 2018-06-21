@@ -306,7 +306,43 @@ let notificationEngine = {
 
 let compiledStreams = {
     streams: [],
-    handleStream: function(streamData) {
+    handleStreamInsert: function(streamData) {
+        let compiledStream = compiledStreams.compileStream(streamData);
+        compiledStreams.streams.push(compiledStream);
+        return {
+            success: true,
+            compiledStream
+        };
+    },
+    handleStreamUpdate: function(streamData) {
+        let compiledStream = compiledStreams.compileStream(streamData);
+        let channelIndex = compiledStreams.streams.findIndex(stream => stream.channelName == compiledStream.channelName);
+        if(channelIndex != null && channelIndex >= 0) {
+            let oldStreamUuid = compiledStreams.streams[channelIndex].uuid;
+            compiledStreams.streams[channelIndex] = compiledStream;
+            return {
+                success: true,
+                oldStreamUuid,
+                compiledStream
+            };
+        }
+        return {
+            success: false
+        };
+    },
+    handleStreanRemove: function(streamData) {
+        let channelIndex = compiledStreams.streams.findIndex(stream => stream.channelName == streamData.stream.channel.name);
+        if(channelIndex != null && channelIndex >= 0) {
+            return {
+                success: true,
+                removedStreams: compiledStreams.streams.splice(channelIndex, 1)
+            };
+        }
+        return {
+            success: false
+        };
+    },
+    compileStream: function(streamData) {
         let compilationParameters = {
             data: {
                 channelName: streamData.stream.channel.name,
@@ -320,8 +356,7 @@ let compiledStreams = {
                 thumbnailsEnabled: settingsAPI.thumbnails_enabled
             }
         };
-        let compiledStream = compileLiveStreamData(compilationParameters);
-        
+        return compileLiveStreamData(compilationParameters);
     }
 }
 
@@ -388,51 +423,63 @@ let twitchAPI = {
             let channelIndex = session.live.findIndex(channel => channel._links.self == parsedResult._links.self);
             if(channelIndex !== -1) { // On the list
                 if (parsedResult.stream === null) { // Offline - need to remove from list
-                    this.handleStreamRemoval(channelIndex);
+                    twitchAPI.liveStream.handleStreamRemoval(channelIndex);
                 }
                 else
                 { // Update channel to new version
-                    this.handleStreamUpdate(channelIndex, parsedResult)
+                    twitchAPI.liveStream.handleStreamUpdate(channelIndex, parsedResult)
                 }
             }
             else { // Not on the list
                 if (parsedResult.stream !== null) { // Stream live and not on the list - add to list
-                    this.handleNewStream(parsedResult);
+                    twitchAPI.liveStream.handleNewStream(parsedResult);
                 }
             }
             return parsedResult;
         },
         handleStreamRemoval: function(liveStreamIndex) {
             let channelToRemove = session.live[liveStreamIndex];
-            // Remove offline channel from backend session object
-            session.live.splice(channelIndex, 1);
             // Remove channel from compiled streams list
-            compiledStreams.handleStream(channelToRemove);
-            // Update extension icon live stream count
-            twitchAPI.liveStream.updateBadge();
-            // If extension popup is currenty openend send a message to update UI
-            if(popup_state_handler.popup_opened) browser.runtime.sendMessage({ "subject": "update_stream_list" });
+            let removalResult = compiledStreams.handleStreanRemove(channelToRemove);
+            if(removalResult.success) {
+                // Remove offline channel from backend session object
+                session.live.splice(liveStreamIndex, 1);
+                // Update extension icon live stream count
+                twitchAPI.liveStream.updateBadge();
+                // If extension popup is currenty openend send a message to update UI
+                if(popup_state_handler.popup_opened){
+                    browser.runtime.sendMessage({ "subject": "remove_streams_from_view", "data": removalResult.removedStreams });
+                    browser.runtime.sendMessage({ "subject": "update_live_follows_count" });
+                } 
+            }
         },
         handleStreamUpdate: function(liveStreamIndex, updatedChannel) {
-            let channelToUpdate = session.live[liveStreamIndex];
-            // Update backend session stream object
-            channelToUpdate.stream = updatedChannel.stream;
             // Update compiled streams list
-            compiledStreams.handleStream(updatedChannel);
-            // If extension popup is currently opened send a message to update UI
-            if(popup_state_handler.popup_opened) browser.runtime.sendMessage({ "subject": "update_stream_list" });
+            let updateResult = compiledStreams.handleStreamUpdate(updatedChannel);
+            if(updateResult.success == true) {
+                let channelToUpdate = session.live[liveStreamIndex];
+                // Update backend session stream object
+                channelToUpdate.stream = updatedChannel.stream;
+                // If extension popup is currently opened send a message to update UI
+                if(popup_state_handler.popup_opened) browser.runtime.sendMessage({ "subject": "update_stream_on_the_view", "data": updateResult });
+            }
         },
         handleNewStream: function(newLiveStream) {
-            // Insert new stream to the backend session object
-            session.live.push(newLiveStream);
             // Compile new stream on the list
-            compiledStreams.handleStream(newLiveStream);
-            // Insert channel name into notification engine queue
-            notificationEngine.toNotify.push(parsedResult.stream.channel.name);
-            // Update extension icon live stream count
-            twitchAPI.liveStream.updateBadge();
-            // If extension popup is currently opened send a message to update UI
-            if(popup_state_handler.popup_opened) browser.runtime.sendMessage({ "subject": "update_stream_list" });
+            let insertResult = compiledStreams.handleStreamInsert(newLiveStream);
+            if(insertResult.success == true) {
+                // Insert new stream to the backend session object
+                session.live.push(newLiveStream);
+                // Insert channel name into notification engine queue
+                notificationEngine.toNotify.push(insertResult.compiledStream.channelName);
+                // Update extension icon live stream count
+                twitchAPI.liveStream.updateBadge();
+                // If extension popup is currently opened send a message to update UI
+                if(popup_state_handler.popup_opened) {
+                    browser.runtime.sendMessage({ "subject": "insert_stream_into_view", "data": insertResult });
+                    browser.runtime.sendMessage({ "subject": "update_live_follows_count" });
+                } 
+            }
         },
         notLoaded: (error) => {
             //var parsedError = JSON.parse(error);
@@ -443,7 +490,6 @@ let twitchAPI = {
             browser.browserAction.setBadgeText({text: (session.live.length).toString()});
         }
     }
-    
 }
 
 // PUBLIC FUNCTIONS - START
@@ -480,12 +526,15 @@ function getUsername() {
 
 function getLiveStreams() {
     var liveStreams = "";
-    var liveChannels = session.live;
-    sortLiveChannels();
-    for(let streamIndex = 0; streamIndex < liveChannels.length; streamIndex++) {
-        let uptime = calculateUptime(liveChannels[streamIndex].stream.created_at);
-        liveStreams += getLiveStream(liveChannels[streamIndex].stream.channel, liveChannels[streamIndex].stream.viewers, liveChannels[streamIndex].stream.preview.medium, uptime, settingsAPI.thumbnails_enabled);
-    }
+    // var liveChannels = session.live;
+    // sortLiveChannels();
+    // for(let streamIndex = 0; streamIndex < liveChannels.length; streamIndex++) {
+    //     let uptime = calculateUptime(liveChannels[streamIndex].stream.created_at);
+    //     liveStreams += getLiveStream(liveChannels[streamIndex].stream.channel, liveChannels[streamIndex].stream.viewers, liveChannels[streamIndex].stream.preview.medium, uptime, settingsAPI.thumbnails_enabled);
+    // }
+    compiledStreams.streams.forEach(stream => {
+        liveStreams += stream.streamFrame;
+    });
     return liveStreams;
 }
 

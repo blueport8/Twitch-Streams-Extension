@@ -1,38 +1,47 @@
 
 function compileLiveStreamData(compilationParameters){
     let uuid = uuidv4();
-    let streamFrame = `
-        <a href="#" class="stream_link" id="${uuid}">
-            ${buildStreamFrame(compilationParameters)}
-        </a>
-    `;
     return {
         uuid,
-        streamFrame
+        channelName: compilationParameters.data.channelName,
+        streamFrame: `
+            <a href="#" class="stream_link" id="${uuid}">
+                ${buildStreamFrame(compilationParameters)}
+            </a>
+        `
     };
 }
 
 function buildStreamFrame(compilationParameters) {
-    let viewersWithSpaces = compilationParameters.data.viewers.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-    let baseStreamFrame = `
+    return `
         <div class="upper_framme">
-            <div class="upper_channel_name">${compilationParameters.data.channelName}</div>
-            <div class="upper_channel_viewers">(${viewersWithSpaces})</div>
-            <div class="upper_channel_uptime">Live: ${compilationParameters.data.channelUptime}</div>
+            ${buildUpperFramePart(compilationParameters)}
         </div>
         <div class="stream_header_separator"></div>
         <div class="stream_frame">
             <div class="live_stream_information_frame">
                 ${buildStreamInformationFrame(compilationParameters)}
-            </div>`;
-            if(compilationParameters.settings.thumbnailsEnabled){
-                baseStreamFrame += `
-                <div class="live_stream_image">
-                    ${buildStreamImageFrame(compilationParameters)}
-                </div>`;
-            }
-    baseStreamFrame += "</div>";
-    return baseStreamFrame;
+            </div>
+            ${buildStreamImageFrame(compilationParameters)}
+        </div>
+    `;
+}
+
+function buildUpperFramePart(compilationParameters) {
+    let viewersWithSpaces = compilationParameters.data.viewers.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    return `
+        <div class="upper_channel_name">${compilationParameters.data.channelName}</div>
+        <div class="upper_channel_viewers">(${viewersWithSpaces})</div>
+        <div class="upper_channel_uptime">Live: ${compilationParameters.data.channelUptime}</div>
+    `;
+}
+
+function buildLowerFramePart(compilationParameters) {
+    return `
+        <div class="live_stream_information_frame">
+            ${buildStreamInformationFrame(compilationParameters)}
+        </div>
+    `;
 }
 
 function buildStreamInformationFrame(compilationParameters) {
@@ -43,9 +52,14 @@ function buildStreamInformationFrame(compilationParameters) {
 }
 
 function buildStreamImageFrame(compilationParameters) {
-    return `
-        <img src="${compilationParameters.data.previewImageUrl}" class="channel_image"></img>
-    `
+    if(compilationParameters.settings.thumbnailsEnabled){
+        return `
+            <div class="live_stream_image">
+                <img src="${compilationParameters.data.previewImageUrl}" class="channel_image"></img>
+            </div>
+        `;
+    }
+    return '';
 }
 
 // Helper function

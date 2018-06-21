@@ -19,6 +19,56 @@ function beckendUpdateListener(request, sender, sendResponse) {
         console.log("Received stream update message");
         updateLiveStreams();
     }
+
+    if(request.subject === "remove_streams_from_view") {
+        let removedStreams = request.data;
+        removedStreams.forEach(removedStream => {
+            let streamToRemove = document.getElementById(removedStream.uuid);
+            if(streamToRemove != null) {
+                streamToRemove.parentNode.removeChild(streamToRemove);
+            }
+        });
+    }
+    if(request.subject === "update_stream_on_the_view") {
+        let updatedStream = request.data;
+        let streamToUpdate = document.getElementById(updatedStream.oldStreamUuid);
+        let nextStream = streamToUpdate.nextSibling;
+        if(streamToUpdate != null) {
+            const parser = new DOMParser();
+            const parsed = parser.parseFromString(updatedStream.compiledStream.streamFrame, `text/html`);
+            const tag = parsed.getElementsByTagName(`body`)[0];
+            let channelImageList = tag.getElementsByClassName("channel_image");
+            let channelImage = channelImageList[0];
+            channelImage.onload = (function() {
+                let frameId = tag.childNodes[0].id;
+                return () => {
+                    changeOpacityFadeIn(frameId);
+                }
+            })();
+            if(nextStream !== null) {
+                streamToUpdate.parentNode.insertBefore(tag, nextStream);
+            } else {
+                streamToUpdate.parentNode.appendChild(tag);
+            }
+            streamToUpdate.parentNode.removeChild(streamToUpdate);
+        }
+    }
+    if(request.subject === "insert_stream_into_view") {
+        let insertedStream = request.data;
+        let links = document.getElementsByClassName("stream_link");
+        const parser = new DOMParser();
+        const parsed = parser.parseFromString(insertedStream.compiledStream.streamFrame, `text/html`);
+        const tag = parsed.getElementsByTagName(`body`)[0];
+        let channelImageList = tag.getElementsByClassName("channel_image");
+        let channelImage = channelImageList[0];
+        channelImage.onload = (function() {
+            let frameId = tag.childNodes[0].id;
+            return () => {
+                changeOpacityFadeIn(frameId);
+            }
+        })();
+        links.appendChild(tag)
+    }
 }
 
 function updateEventListeners() {
@@ -34,15 +84,13 @@ function updateEventListeners() {
                 openStream(local_channel_name);
             }
         })();
-    }
 
-    let images = document.getElementsByClassName("channel_image");
-    for(let imageIndex = 0; imageIndex < images.length; imageIndex++) {
-        let image = images[imageIndex];
-        image.onload = (function() {
-            let imageId = image.id;
+        let channelImageList = link.getElementsByClassName("channel_image");
+        let channelImage = channelImageList[0];
+        channelImage.onload = (function() {
+            let frameId = link.id;
             return () => {
-                changeOpacityFadeIn(imageId);
+                changeOpacityFadeIn(frameId);
             }
         })();
     }
@@ -56,7 +104,9 @@ function openStream(channel_name) {
     browser.runtime.sendMessage({"subject": "background.close_popup"});
 }
 
-function changeOpacityFadeIn(id) {
-    let image = document.getElementById(id);
-    image.style.opacity='1';
+function changeOpacityFadeIn(frameId) {
+    let streamFrame = document.getElementById(frameId);
+    let channelImageList = streamFrame.getElementsByClassName("channel_image");
+    let channelImage = channelImageList[0];
+    channelImage.style.opacity='1';
 }
