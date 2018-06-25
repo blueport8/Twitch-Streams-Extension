@@ -4,6 +4,11 @@ function compileLiveStreamData(compilationParameters){
     return {
         uuid,
         channelName: compilationParameters.data.channelName,
+        sorting: {
+            viewersScore: compilationParameters.data.viewers,
+            channelName: compilationParameters.data.channelName,
+            gameName: compilationParameters.data.game
+        },
         streamFrame: `
             <a href="#" class="stream_link" id="${uuid}">
                 ${buildStreamFrame(compilationParameters)}

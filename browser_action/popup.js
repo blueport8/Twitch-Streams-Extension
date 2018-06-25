@@ -53,7 +53,6 @@ function updateFollows() {
 
 function beckendUpdateListener(request, sender, sendResponse) {
     if (request.subject === "update_live_follows_count" || request.subject === "update_stream_list") {
-        console.log("Received live stream count and follow count update");
         updateFollows();
     }
 }

@@ -2,7 +2,8 @@
 // Background access
 let BACKGROUNDPAGE = browser.extension.getBackgroundPage();
 
- updateLiveStreams();
+
+updateLiveStreams();
 browser.runtime.onMessage.addListener(beckendUpdateListener);
 
 function updateLiveStreams() {
@@ -14,12 +15,7 @@ function updateLiveStreams() {
     updateEventListeners();
 }
 
-function beckendUpdateListener(request, sender, sendResponse) {
-    if (request.subject === "update_stream_list") {
-        console.log("Received stream update message");
-        updateLiveStreams();
-    }
-
+function beckendUpdateListener(request) {
     if(request.subject === "remove_streams_from_view") {
         let removedStreams = request.data;
         removedStreams.forEach(removedStream => {
@@ -55,7 +51,9 @@ function beckendUpdateListener(request, sender, sendResponse) {
     }
     if(request.subject === "insert_stream_into_view") {
         let insertedStream = request.data;
-        let links = document.getElementsByClassName("stream_link");
+        let streamToUpdate = document.getElementById(insertedStream.compiledStream.uuid);
+        let container = document.getElementById("live_stream_container");
+        //let links = document.getElementsByClassName("stream_link");
         const parser = new DOMParser();
         const parsed = parser.parseFromString(insertedStream.compiledStream.streamFrame, `text/html`);
         const tag = parsed.getElementsByTagName(`body`)[0];
@@ -67,7 +65,7 @@ function beckendUpdateListener(request, sender, sendResponse) {
                 changeOpacityFadeIn(frameId);
             }
         })();
-        links.appendChild(tag)
+        container.appendChild(tag)
     }
 }
 

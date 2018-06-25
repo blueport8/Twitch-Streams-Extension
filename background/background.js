@@ -146,6 +146,7 @@ let settingsAPI = {
         session.followsCount = 0;
         session.follows = [];
         session.live = [];
+        compiledStreams.streams = [];
         twitchAPI.liveStream.updateBadge();
         application.fastUpdate();
     },
@@ -309,6 +310,7 @@ let compiledStreams = {
     handleStreamInsert: function(streamData) {
         let compiledStream = compiledStreams.compileStream(streamData);
         compiledStreams.streams.push(compiledStream);
+        sortCompiledChannels();
         return {
             success: true,
             compiledStream
@@ -320,6 +322,7 @@ let compiledStreams = {
         if(channelIndex != null && channelIndex >= 0) {
             let oldStreamUuid = compiledStreams.streams[channelIndex].uuid;
             compiledStreams.streams[channelIndex] = compiledStream;
+            sortCompiledChannels();
             return {
                 success: true,
                 oldStreamUuid,
@@ -441,6 +444,7 @@ let twitchAPI = {
             let channelToRemove = session.live[liveStreamIndex];
             // Remove channel from compiled streams list
             let removalResult = compiledStreams.handleStreanRemove(channelToRemove);
+            console.log("Removing: " + removalResult.removedStreams[0].channelName);
             if(removalResult.success) {
                 // Remove offline channel from backend session object
                 session.live.splice(liveStreamIndex, 1);
@@ -456,6 +460,7 @@ let twitchAPI = {
         handleStreamUpdate: function(liveStreamIndex, updatedChannel) {
             // Update compiled streams list
             let updateResult = compiledStreams.handleStreamUpdate(updatedChannel);
+            console.log("Updating: " + updateResult.compiledStream.channelName);
             if(updateResult.success == true) {
                 let channelToUpdate = session.live[liveStreamIndex];
                 // Update backend session stream object
@@ -467,6 +472,7 @@ let twitchAPI = {
         handleNewStream: function(newLiveStream) {
             // Compile new stream on the list
             let insertResult = compiledStreams.handleStreamInsert(newLiveStream);
+            console.log("Inserting: " + insertResult.compiledStream.channelName);
             if(insertResult.success == true) {
                 // Insert new stream to the backend session object
                 session.live.push(newLiveStream);
@@ -532,6 +538,7 @@ function getLiveStreams() {
     //     let uptime = calculateUptime(liveChannels[streamIndex].stream.created_at);
     //     liveStreams += getLiveStream(liveChannels[streamIndex].stream.channel, liveChannels[streamIndex].stream.viewers, liveChannels[streamIndex].stream.preview.medium, uptime, settingsAPI.thumbnails_enabled);
     // }
+    //sortLiveChannels();
     compiledStreams.streams.forEach(stream => {
         liveStreams += stream.streamFrame;
     });
@@ -572,6 +579,59 @@ function timeSince(when) { // this ignores months
     obj.days = obj._days % 365;
     obj.years = (obj._days - obj.days) / 365;
     return obj;
+}
+
+function sortCompiledChannels(){
+    let liveChannels = compiledStreams.streams;
+    let sortingDirection = settingsAPI.sorting_direction;
+    let sortingField = settingsAPI.sorting_field;
+
+    if (sortingField === "Viewers" && sortingDirection === "desc") {
+        liveChannels.sort((streamA, streamB) => {
+            if (streamA.sorting.viewersScore < streamB.sorting.viewersScore) return 1;
+            if (streamA.sorting.viewersScore > streamB.sorting.viewersScore) return -1;
+            return 0;
+        });
+    }
+    if (sortingField === "Viewers" && sortingDirection === "asc") {
+        liveChannels.sort((streamA, streamB) => {
+            if (streamA.sorting.viewersScore > streamB.sorting.viewersScore) return 1;
+            if (streamA.sorting.viewersScore < streamB.sorting.viewersScore) return -1;
+            return 0;
+        });
+    }
+    if (sortingField === "Channel name" && sortingDirection === "desc") {
+        name
+        liveChannels.sort((streamA, streamB) => {
+            if (streamA.sorting.channelName < streamB.sorting.channelName) return 1;
+            if (streamA.sorting.channelName > streamB.sorting.channelName) return -1;
+            return 0;
+        });
+    }
+    if (sortingField === "Channel name" && sortingDirection === "asc") {
+        name
+        liveChannels.sort((streamA, streamB) => {
+            if (streamA.sorting.channelName > streamB.sorting.channelName) return 1;
+            if (streamA.sorting.channelName < streamB.sorting.channelName) return -1;
+            return 0;
+        });
+    }
+    if (sortingField === "Game" && sortingDirection === "desc") {
+        name
+        liveChannels.sort((streamA, streamB) => {
+        if (streamA.sorting.gameName < streamB.sorting.gameName) return 1;
+        if (streamA.sorting.gameName > streamB.sorting.gameName) return -1;
+        return 0;
+        });
+    }
+    if (sortingField === "Game" && sortingDirection === "asc") {
+        name
+        liveChannels.sort((streamA, streamB) => {
+        if (streamA.sorting.gameName > streamB.sorting.gameName) return 1;
+        if (streamA.sorting.gameName < streamB.sorting.gameName) return -1;
+        return 0;
+        });
+    }
 }
 
 function sortLiveChannels() {
