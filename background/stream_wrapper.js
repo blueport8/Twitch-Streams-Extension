@@ -5,7 +5,7 @@ function compileLiveStreamData(compilationParameters){
         uuid,
         channelName: compilationParameters.data.channelName,
         sorting: {
-            viewersScore: compilationParameters.data.viewers,
+            viewers: compilationParameters.data.viewers,
             channelName: compilationParameters.data.channelName,
             gameName: compilationParameters.data.game
         },

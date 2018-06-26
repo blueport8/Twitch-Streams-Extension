@@ -17,43 +17,45 @@ function updateLiveStreams() {
 
 function beckendUpdateListener(request) {
     if(request.subject === "remove_streams_from_view") {
-        let removedStreams = request.data;
-        removedStreams.forEach(removedStream => {
-            let streamToRemove = document.getElementById(removedStream.uuid);
-            if(streamToRemove != null) {
-                streamToRemove.parentNode.removeChild(streamToRemove);
-            }
-        });
+        let removedStream = request.data;
+        let streamToRemove = document.getElementById(removedStream.uuid);
+        if(streamToRemove != null) {
+            streamToRemove.parentNode.removeChild(streamToRemove);
+        }
     }
     if(request.subject === "update_stream_on_the_view") {
         let updatedStream = request.data;
-        let streamToUpdate = document.getElementById(updatedStream.oldStreamUuid);
-        let nextStream = streamToUpdate.nextSibling;
-        if(streamToUpdate != null) {
-            const parser = new DOMParser();
-            const parsed = parser.parseFromString(updatedStream.compiledStream.streamFrame, `text/html`);
-            const tag = parsed.getElementsByTagName(`body`)[0];
-            let channelImageList = tag.getElementsByClassName("channel_image");
-            let channelImage = channelImageList[0];
-            channelImage.onload = (function() {
-                let frameId = tag.childNodes[0].id;
-                return () => {
-                    changeOpacityFadeIn(frameId);
-                }
-            })();
-            if(nextStream !== null) {
-                streamToUpdate.parentNode.insertBefore(tag, nextStream);
-            } else {
-                streamToUpdate.parentNode.appendChild(tag);
+        
+        
+        let container = document.getElementById("live_stream_container");
+        console.log("Container: " + container.childNodes[0].childNodes.length);
+        let insertionIndex = getInsertionIndex(updatedStream, container.childNodes[0]);
+        console.log("Update index: " + insertionIndex);
+        
+        const parser = new DOMParser();
+        const parsed = parser.parseFromString(updatedStream.compiledStream.streamFrame, `text/html`);
+        const tag = parsed.getElementsByTagName(`body`)[0];
+        let channelImageList = tag.getElementsByClassName("channel_image");
+        let channelImage = channelImageList[0];
+        channelImage.onload = (function() {
+            let frameId = tag.childNodes[0].id;
+            return () => {
+                changeOpacityFadeIn(frameId);
             }
-            streamToUpdate.parentNode.removeChild(streamToUpdate);
+        })();
+        if(insertionIndex !== Infinity) {
+            let insertionNode = container.childNodes[0].childNodes.item(insertionIndex);
+            insertionNode.parentNode.insertBefore(tag, insertionNode);
+        } else {
+            container.childNodes[0].appendChild(tag);
         }
+        
+        let streamToUpdate = document.getElementById(updatedStream.oldStreamUuid);
+        streamToUpdate.parentNode.removeChild(streamToUpdate);
     }
     if(request.subject === "insert_stream_into_view") {
         let insertedStream = request.data;
-        let streamToUpdate = document.getElementById(insertedStream.compiledStream.uuid);
-        let container = document.getElementById("live_stream_container");
-        //let links = document.getElementsByClassName("stream_link");
+        let container = document.getElementById("live_stream_container").childNodes[0];
         const parser = new DOMParser();
         const parsed = parser.parseFromString(insertedStream.compiledStream.streamFrame, `text/html`);
         const tag = parsed.getElementsByTagName(`body`)[0];
@@ -65,7 +67,25 @@ function beckendUpdateListener(request) {
                 changeOpacityFadeIn(frameId);
             }
         })();
-        container.appendChild(tag)
+        if(insertionIndex !== Infinity) {
+            console.log(insertionIndex);
+            let insertionNode = container.childNodes.item(insertionIndex);
+            insertionNode.parentNode.insertBefore(tag, insertionNode);
+        } else {
+            container.appendChild(tag);
+        }
+    }
+}
+
+function getInsertionIndex(insertedStream, container) {
+    if(insertedStream.sortingField === "Viewers" && insertedStream.sortingDirection === "desc") {
+        if(insertedStream.viewersSortingInsertionIndex == Infinity) return 0;
+        if(insertedStream.viewersSortingInsertionIndex == 0) return Infinity;
+        return container.childNodes.length - insertedStream.viewersSortingInsertionIndex + 1;
+    }
+    if(insertedStream.sortingField === "Viewers" && insertedStream.sortingDirection === "asc") {
+        if(container.childNodes.length == insertedStream.viewersSortingInsertionIndex) return Infinity;
+        return insertedStream.viewersSortingInsertionIndex + 1;
     }
 }
 

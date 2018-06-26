@@ -307,38 +307,60 @@ let notificationEngine = {
 
 let compiledStreams = {
     streams: [],
+    streamsSortedByViewers: [],
+    emptyList: function() {
+        console.log("Emptying compiled stream list");
+        this.streams = [];
+        this.streamsSortedByViewers = [];
+    },
     handleStreamInsert: function(streamData) {
+        const sortingDirection = settingsAPI.sorting_direction;
+        const sortingField = settingsAPI.sorting_field;
         let compiledStream = compiledStreams.compileStream(streamData);
         compiledStreams.streams.push(compiledStream);
-        sortCompiledChannels();
+        let viewersSortingInsertionIndex = this.insertWithSorting(compiledStream);
+        //sortCompiledChannels();
+        console.log(this.streamsSortedByViewers);
         return {
             success: true,
-            compiledStream
+            compiledStream,
+            sortingField,
+            sortingDirection,
+            viewersSortingInsertionIndex
         };
     },
     handleStreamUpdate: function(streamData) {
+        const sortingDirection = settingsAPI.sorting_direction;
+        const sortingField = settingsAPI.sorting_field;
         let compiledStream = compiledStreams.compileStream(streamData);
         let channelIndex = compiledStreams.streams.findIndex(stream => stream.channelName == compiledStream.channelName);
         if(channelIndex != null && channelIndex >= 0) {
             let oldStreamUuid = compiledStreams.streams[channelIndex].uuid;
             compiledStreams.streams[channelIndex] = compiledStream;
-            sortCompiledChannels();
+            let viewersSortingInsertionIndex = this.updateWithSorting(compiledStream, oldStreamUuid);
+            console.log(this.streamsSortedByViewers);
+            //sortCompiledChannels();
             return {
                 success: true,
                 oldStreamUuid,
-                compiledStream
+                compiledStream,
+                sortingField,
+                sortingDirection,
+                viewersSortingInsertionIndex
             };
         }
         return {
             success: false
         };
     },
-    handleStreanRemove: function(streamData) {
+    handleStreamRemove: function(streamData) {
         let channelIndex = compiledStreams.streams.findIndex(stream => stream.channelName == streamData.stream.channel.name);
+        let sortByViewersChannelIndex = this.streamsSortedByViewers.findIndex(stream => stream.channelName == streamData.stream.channel.name);
+        this.streamsSortedByViewers.splice(sortByViewersChannelIndex, 1);
         if(channelIndex != null && channelIndex >= 0) {
             return {
                 success: true,
-                removedStreams: compiledStreams.streams.splice(channelIndex, 1)
+                removedStream: compiledStreams.streams.splice(channelIndex, 1)
             };
         }
         return {
@@ -360,6 +382,39 @@ let compiledStreams = {
             }
         };
         return compileLiveStreamData(compilationParameters);
+    },
+    insertWithSorting: function(compiledStream) {
+        if(this.streamsSortedByViewers.length == 0) {
+            this.streamsSortedByViewers.push(compiledStream);
+            return 0;
+        }
+        // Sort ascending. New streams tend to not have many viewers, so less loop cycles needed.
+        for (let streamOnSortedListIndex = 0; streamOnSortedListIndex < this.streamsSortedByViewers.length; streamOnSortedListIndex++) {
+            const element = this.streamsSortedByViewers[streamOnSortedListIndex];
+            if(compiledStream.sorting.viewers < element.sorting.viewers) {
+                this.streamsSortedByViewers.splice(streamOnSortedListIndex, 0, compiledStream);
+                return streamOnSortedListIndex;
+            }
+        }
+        this.streamsSortedByViewers.push(compiledStream);
+        return Infinity;
+    },
+    updateWithSorting: function(compiledStream, oldStreamUuid) {
+        if(this.streamsSortedByViewers.length == 0) {
+            console.log("Trying to update stream but streamsSortedByViewers array is empty");
+            return null;
+        }
+
+        // First remove existing item
+        let streamOnSortedListIndex = 0;
+        for (; streamOnSortedListIndex < this.streamsSortedByViewers.length; streamOnSortedListIndex++) {
+            const element = this.streamsSortedByViewers[streamOnSortedListIndex];
+            if(oldStreamUuid === element.uuid) {
+                this.streamsSortedByViewers.splice(streamOnSortedListIndex, 1);
+                break;
+            }
+        }
+        return this.insertWithSorting(compiledStream)
     }
 }
 
@@ -443,8 +498,8 @@ let twitchAPI = {
         handleStreamRemoval: function(liveStreamIndex) {
             let channelToRemove = session.live[liveStreamIndex];
             // Remove channel from compiled streams list
-            let removalResult = compiledStreams.handleStreanRemove(channelToRemove);
-            console.log("Removing: " + removalResult.removedStreams[0].channelName);
+            let removalResult = compiledStreams.handleStreamRemove(channelToRemove);
+            console.log("Removing: " + removalResult.removedStream.channelName);
             if(removalResult.success) {
                 // Remove offline channel from backend session object
                 session.live.splice(liveStreamIndex, 1);
@@ -452,7 +507,7 @@ let twitchAPI = {
                 twitchAPI.liveStream.updateBadge();
                 // If extension popup is currenty openend send a message to update UI
                 if(popup_state_handler.popup_opened){
-                    browser.runtime.sendMessage({ "subject": "remove_streams_from_view", "data": removalResult.removedStreams });
+                    browser.runtime.sendMessage({ "subject": "remove_streams_from_view", "data": removalResult.removedStream });
                     browser.runtime.sendMessage({ "subject": "update_live_follows_count" });
                 } 
             }
@@ -531,7 +586,21 @@ function getUsername() {
 }
 
 function getLiveStreams() {
+    const sortingDirection = settingsAPI.sorting_direction;
     var liveStreams = "";
+    if(sortingDirection === "asc") {
+        for (let streamIndex = 0; streamIndex < compiledStreams.streamsSortedByViewers.length; streamIndex++) {
+            const element = compiledStreams.streamsSortedByViewers[streamIndex];
+            liveStreams += element.streamFrame;
+        }
+        return liveStreams;
+    }
+    // Descending
+    for (let streamIndex = compiledStreams.streamsSortedByViewers.length - 1; streamIndex >= 0 ; streamIndex--) {
+        const element = compiledStreams.streamsSortedByViewers[streamIndex];
+        liveStreams += element.streamFrame;
+    }
+    
     // var liveChannels = session.live;
     // sortLiveChannels();
     // for(let streamIndex = 0; streamIndex < liveChannels.length; streamIndex++) {
@@ -539,9 +608,9 @@ function getLiveStreams() {
     //     liveStreams += getLiveStream(liveChannels[streamIndex].stream.channel, liveChannels[streamIndex].stream.viewers, liveChannels[streamIndex].stream.preview.medium, uptime, settingsAPI.thumbnails_enabled);
     // }
     //sortLiveChannels();
-    compiledStreams.streams.forEach(stream => {
-        liveStreams += stream.streamFrame;
-    });
+    // compiledStreams.streams.forEach(stream => {
+    //     liveStreams += stream.streamFrame;
+    // });
     return liveStreams;
 }
 
