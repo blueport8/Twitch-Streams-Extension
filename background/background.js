@@ -146,7 +146,7 @@ let settingsAPI = {
         session.followsCount = 0;
         session.follows = [];
         session.live = [];
-        compiledStreams.streams = [];
+        compiledStreams.emptyList();
         twitchAPI.liveStream.updateBadge();
         application.fastUpdate();
     },
