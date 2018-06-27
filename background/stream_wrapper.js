@@ -12,8 +12,7 @@ function compileLiveStreamData(compilationParameters){
         streamFrame: `
             <a href="#" class="stream_link" id="${uuid}">
                 ${buildStreamFrame(compilationParameters)}
-            </a>
-        `
+            </a>`
     };
 }
 
@@ -28,8 +27,7 @@ function buildStreamFrame(compilationParameters) {
                 ${buildStreamInformationFrame(compilationParameters)}
             </div>
             ${buildStreamImageFrame(compilationParameters)}
-        </div>
-    `;
+        </div>`;
 }
 
 function buildUpperFramePart(compilationParameters) {
@@ -37,32 +35,28 @@ function buildUpperFramePart(compilationParameters) {
     return `
         <div class="upper_channel_name">${compilationParameters.data.channelName}</div>
         <div class="upper_channel_viewers">(${viewersWithSpaces})</div>
-        <div class="upper_channel_uptime">Live: ${compilationParameters.data.channelUptime}</div>
-    `;
+        <div class="upper_channel_uptime">Live: ${compilationParameters.data.channelUptime}</div>`;
 }
 
 function buildLowerFramePart(compilationParameters) {
     return `
         <div class="live_stream_information_frame">
             ${buildStreamInformationFrame(compilationParameters)}
-        </div>
-    `;
+        </div>`;
 }
 
 function buildStreamInformationFrame(compilationParameters) {
     return `
         <div class="channel_game">${compilationParameters.data.game}</div>
-        <div class="channel_title">${compilationParameters.data.channelTitle}</div>
-    `
+        <div class="channel_title">${compilationParameters.data.channelTitle}</div>`
 }
 
 function buildStreamImageFrame(compilationParameters) {
     if(compilationParameters.settings.thumbnailsEnabled){
         return `
             <div class="live_stream_image">
-                <img src="${compilationParameters.data.previewImageUrl}" class="channel_image"></img>
-            </div>
-        `;
+                <img src="${compilationParameters.data.previewImageUrl}" class="channel_image" />
+            </div>`;
     }
     return '';
 }

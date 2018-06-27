@@ -320,7 +320,6 @@ let compiledStreams = {
         compiledStreams.streams.push(compiledStream);
         let viewersSortingInsertionIndex = this.insertWithSorting(compiledStream);
         //sortCompiledChannels();
-        console.log(this.streamsSortedByViewers);
         return {
             success: true,
             compiledStream,
@@ -338,7 +337,6 @@ let compiledStreams = {
             let oldStreamUuid = compiledStreams.streams[channelIndex].uuid;
             compiledStreams.streams[channelIndex] = compiledStream;
             let viewersSortingInsertionIndex = this.updateWithSorting(compiledStream, oldStreamUuid);
-            console.log(this.streamsSortedByViewers);
             //sortCompiledChannels();
             return {
                 success: true,
@@ -358,11 +356,15 @@ let compiledStreams = {
         let sortByViewersChannelIndex = this.streamsSortedByViewers.findIndex(stream => stream.channelName == streamData.stream.channel.name);
         this.streamsSortedByViewers.splice(sortByViewersChannelIndex, 1);
         if(channelIndex != null && channelIndex >= 0) {
+            console.log("Removing stream:");
+            console.log(compiledStreams.streams[channelIndex]);
             return {
                 success: true,
                 removedStream: compiledStreams.streams.splice(channelIndex, 1)
             };
         }
+        console.log("Filed to remove stream. Stream data:");
+        console.log(streamData);
         return {
             success: false
         };
@@ -499,7 +501,8 @@ let twitchAPI = {
             let channelToRemove = session.live[liveStreamIndex];
             // Remove channel from compiled streams list
             let removalResult = compiledStreams.handleStreamRemove(channelToRemove);
-            console.log("Removing: " + removalResult.removedStream.channelName);
+            console.log("Removing: ");
+            console.log(removalResult.removedStream);
             if(removalResult.success) {
                 // Remove offline channel from backend session object
                 session.live.splice(liveStreamIndex, 1);
@@ -589,29 +592,10 @@ function getLiveStreams() {
     const sortingDirection = settingsAPI.sorting_direction;
     var liveStreams = "";
     if(sortingDirection === "asc") {
-        for (let streamIndex = 0; streamIndex < compiledStreams.streamsSortedByViewers.length; streamIndex++) {
-            const element = compiledStreams.streamsSortedByViewers[streamIndex];
-            liveStreams += element.streamFrame;
-        }
-        return liveStreams;
+        return compiledStreams.streamsSortedByViewers;
     }
     // Descending
-    for (let streamIndex = compiledStreams.streamsSortedByViewers.length - 1; streamIndex >= 0 ; streamIndex--) {
-        const element = compiledStreams.streamsSortedByViewers[streamIndex];
-        liveStreams += element.streamFrame;
-    }
-    
-    // var liveChannels = session.live;
-    // sortLiveChannels();
-    // for(let streamIndex = 0; streamIndex < liveChannels.length; streamIndex++) {
-    //     let uptime = calculateUptime(liveChannels[streamIndex].stream.created_at);
-    //     liveStreams += getLiveStream(liveChannels[streamIndex].stream.channel, liveChannels[streamIndex].stream.viewers, liveChannels[streamIndex].stream.preview.medium, uptime, settingsAPI.thumbnails_enabled);
-    // }
-    //sortLiveChannels();
-    // compiledStreams.streams.forEach(stream => {
-    //     liveStreams += stream.streamFrame;
-    // });
-    return liveStreams;
+    return compiledStreams.streamsSortedByViewers.slice().reverse();
 }
 
 function forceRefresh() {
