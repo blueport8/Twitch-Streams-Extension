@@ -131,6 +131,8 @@ let settingsAPI = {
         });
     },
     setBrowserData: function(settingsSnapshot) {
+        const userNameChanged = (settingsSnapshot.username !== session.username);
+        const thumbnailsEnabledChanged = (settingsSnapshot.thumbnailsEnabled !== this.thumbnails_enabled);
         browser.storage.sync.set({ "twitchStreamsUserName": settingsSnapshot.username });
         browser.storage.sync.set({ "twitchStreamsSortingField": settingsSnapshot.sortingField });
         browser.storage.sync.set({ "twitchStreamsSortingDirection": settingsSnapshot.sortingDirection });
@@ -143,12 +145,14 @@ let settingsAPI = {
         this.notifications_enabled = settingsSnapshot.notificationsEnabled;
         this.thumbnails_enabled = settingsSnapshot.thumbnailsEnabled;
         session.username = settingsSnapshot.username;
-        session.followsCount = 0;
-        session.follows = [];
-        session.live = [];
-        compiledStreams.emptyList();
-        twitchAPI.liveStream.updateBadge();
-        application.fastUpdate();
+        if(userNameChanged || thumbnailsEnabledChanged) {
+            session.followsCount = 0;
+            session.follows = [];
+            session.live = [];
+            compiledStreams.emptyList();
+            twitchAPI.liveStream.updateBadge();
+            application.fastUpdate();
+        }
     },
     // Settings processors
     username_handler: function(data) {
@@ -308,24 +312,32 @@ let notificationEngine = {
 let compiledStreams = {
     streams: [],
     streamsSortedByViewers: [],
+    streamsSortedByGame: [],
+    streamsSortedByChannelName: [],
     emptyList: function() {
         console.log("Emptying compiled stream list");
         this.streams = [];
         this.streamsSortedByViewers = [];
+        this.streamsSortedByGame = [];
+        this.streamsSortedByChannelName = [];
     },
     handleStreamInsert: function(streamData) {
         const sortingDirection = settingsAPI.sorting_direction;
         const sortingField = settingsAPI.sorting_field;
         let compiledStream = compiledStreams.compileStream(streamData);
         compiledStreams.streams.push(compiledStream);
-        let viewersSortingInsertionIndex = this.insertWithSorting(compiledStream);
+        let viewersSortingInsertionIndex = this.insertWithSortingByViewers(compiledStream);
+        let channelNameSortingInsertionIndex = this.insertWithSortingByChannelName(compiledStream);
+        let gameNameSortingInsertionIndex = this.insertWithSortingByGame(compiledStream);
         //sortCompiledChannels();
         return {
             success: true,
             compiledStream,
             sortingField,
             sortingDirection,
-            viewersSortingInsertionIndex
+            viewersSortingInsertionIndex,
+            channelNameSortingInsertionIndex,
+            gameNameSortingInsertionIndex
         };
     },
     handleStreamUpdate: function(streamData) {
@@ -336,7 +348,9 @@ let compiledStreams = {
         if(channelIndex != null && channelIndex >= 0) {
             let oldStreamUuid = compiledStreams.streams[channelIndex].uuid;
             compiledStreams.streams[channelIndex] = compiledStream;
-            let viewersSortingInsertionIndex = this.updateWithSorting(compiledStream, oldStreamUuid);
+            let viewersSortingInsertionIndex = this.updateWithSortingByViewers(compiledStream, oldStreamUuid);
+            let channelNameSortingInsertionIndex = this.updateWithSortingByChannelName(compiledStream, oldStreamUuid);
+            let gameNameSortingInsertionIndex = this.updateWithSortingByGameName(compiledStream, oldStreamUuid);
             //sortCompiledChannels();
             return {
                 success: true,
@@ -344,7 +358,9 @@ let compiledStreams = {
                 compiledStream,
                 sortingField,
                 sortingDirection,
-                viewersSortingInsertionIndex
+                viewersSortingInsertionIndex,
+                channelNameSortingInsertionIndex,
+                gameNameSortingInsertionIndex
             };
         }
         return {
@@ -385,7 +401,7 @@ let compiledStreams = {
         };
         return compileLiveStreamData(compilationParameters);
     },
-    insertWithSorting: function(compiledStream) {
+    insertWithSortingByViewers: function(compiledStream) {
         if(this.streamsSortedByViewers.length == 0) {
             this.streamsSortedByViewers.push(compiledStream);
             return 0;
@@ -401,7 +417,41 @@ let compiledStreams = {
         this.streamsSortedByViewers.push(compiledStream);
         return Infinity;
     },
-    updateWithSorting: function(compiledStream, oldStreamUuid) {
+    insertWithSortingByChannelName: function(compiledStream) {
+        if(this.streamsSortedByChannelName.length == 0) {
+            this.streamsSortedByChannelName.push(compiledStream);
+            return 0;
+        }
+
+        for (let streamOnSortedListIndex = 0; streamOnSortedListIndex < this.streamsSortedByChannelName.length; streamOnSortedListIndex++) {
+            const element = this.streamsSortedByChannelName[streamOnSortedListIndex];
+            if(compiledStream.sorting.channelName < element.sorting.channelName) {
+                this.streamsSortedByChannelName.splice(streamOnSortedListIndex, 0, compiledStream);
+                return streamOnSortedListIndex;
+            }
+        }
+
+        this.streamsSortedByChannelName.push(compiledStream);
+        return Infinity;
+    },
+    insertWithSortingByGame: function(compiledStream) {
+        if(this.streamsSortedByGame.length == 0) {
+            this.streamsSortedByGame.push(compiledStream);
+            return 0;
+        }
+
+        for (let streamOnSortedListIndex = 0; streamOnSortedListIndex < this.streamsSortedByGame.length; streamOnSortedListIndex++) {
+            const element = this.streamsSortedByGame[streamOnSortedListIndex];
+            if(compiledStream.sorting.gameName < element.sorting.gameName) {
+                this.streamsSortedByGame.splice(streamOnSortedListIndex, 0, compiledStream);
+                return streamOnSortedListIndex;
+            }
+        }
+
+        this.streamsSortedByGame.push(compiledStream);
+        return Infinity;
+    },
+    updateWithSortingByViewers: function(compiledStream, oldStreamUuid) {
         if(this.streamsSortedByViewers.length == 0) {
             console.log("Trying to update stream but streamsSortedByViewers array is empty");
             return null;
@@ -416,7 +466,41 @@ let compiledStreams = {
                 break;
             }
         }
-        return this.insertWithSorting(compiledStream)
+        return this.insertWithSortingByViewers(compiledStream)
+    },
+    updateWithSortingByChannelName: function(compiledStream, oldStreamUuid) {
+        if(this.streamsSortedByChannelName.length == 0) {
+            console.log("Trying to update stream but streamsSortedByChannelName array is empty");
+            return null;
+        }
+
+        // First remove existing item
+        let streamOnSortedListIndex = 0;
+        for (; streamOnSortedListIndex < this.streamsSortedByChannelName.length; streamOnSortedListIndex++) {
+            const element = this.streamsSortedByChannelName[streamOnSortedListIndex];
+            if(oldStreamUuid === element.uuid) {
+                this.streamsSortedByChannelName.splice(streamOnSortedListIndex, 1);
+                break;
+            }
+        }
+        return this.insertWithSortingByChannelName(compiledStream)
+    },
+    updateWithSortingByGameName: function(compiledStream, oldStreamUuid) {
+        if(this.streamsSortedByGame.length == 0) {
+            console.log("Trying to update stream but streamsSortedByGame array is empty");
+            return null;
+        }
+
+        // First remove existing item
+        let streamOnSortedListIndex = 0;
+        for (; streamOnSortedListIndex < this.streamsSortedByGame.length; streamOnSortedListIndex++) {
+            const element = this.streamsSortedByGame[streamOnSortedListIndex];
+            if(oldStreamUuid === element.uuid) {
+                this.streamsSortedByGame.splice(streamOnSortedListIndex, 1);
+                break;
+            }
+        }
+        return this.insertWithSortingByGame(compiledStream);
     }
 }
 
@@ -590,12 +674,28 @@ function getUsername() {
 
 function getLiveStreams() {
     const sortingDirection = settingsAPI.sorting_direction;
-    var liveStreams = "";
-    if(sortingDirection === "asc") {
-        return compiledStreams.streamsSortedByViewers;
+    const sortingField = settingsAPI.sorting_field;
+    if(sortingField == "Viewers") {
+        if(sortingDirection === "asc") {
+            return compiledStreams.streamsSortedByViewers;
+        }
+        // Descending
+        return compiledStreams.streamsSortedByViewers.slice().reverse();
     }
-    // Descending
-    return compiledStreams.streamsSortedByViewers.slice().reverse();
+    if(sortingField == "Channel name") {
+        if(sortingDirection === "asc") {
+            return compiledStreams.streamsSortedByChannelName;
+        }
+        // Descending
+        return compiledStreams.streamsSortedByChannelName.slice().reverse();
+    }
+    if(sortingField == "Game") {
+        if(sortingDirection === "asc") {
+            return compiledStreams.streamsSortedByGame;
+        }
+        // Descending
+        return compiledStreams.streamsSortedByGame.slice().reverse();
+    }
 }
 
 function forceRefresh() {

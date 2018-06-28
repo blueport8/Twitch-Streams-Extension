@@ -30,15 +30,16 @@ function beckendUpdateListener(request) {
     }
 }
 
-function handleStreamRemoval(removedStream) {
+function handleStreamRemoval(removedStreams) {
     console.log("Removal fired for:");
-    console.log(removedStream);
-    removeStream(removedStream.uuid);
+    console.log(removedStreams);
+    removeStream(removedStreams[0].uuid);
 }
 
 function handleStreamUpdate(updatedStream) {
     let container = getContainer();
     let insertionIndex = getInsertionIndex(updatedStream, container);
+    console.log("Insertion index: " + insertionIndex);
     const streamLinkFrame = parseStreamFrame(updatedStream.compiledStream.streamFrame)[0];
     addImageFadeInEffect(streamLinkFrame);
 
@@ -95,26 +96,44 @@ function getContainer() {
 
 function removeStream(uuid) {
     let streamToRemove = document.getElementById(uuid);
+    console.log(streamToRemove);
     if(streamToRemove != null) {
         streamToRemove.parentNode.removeChild(streamToRemove);
     }
 }
 
 function getInsertionIndex(insertedStream, container) {
+    console.log("Soring field: " + insertedStream.sortingField);
+    console.log("Sorting direction: " + insertedStream.sortingDirection);
+    console.log(insertedStream);
     if(insertedStream.sortingField === "Viewers" && insertedStream.sortingDirection === "desc") {
-        if(insertedStream.viewersSortingInsertionIndex == Infinity) {
-            console.log("Infinity rule fired");
-            return 0;
-        }
-        if(insertedStream.viewersSortingInsertionIndex == 0) {
-            console.log("Last index rule fired");
-            return Infinity;
-        }
+        if(insertedStream.viewersSortingInsertionIndex == Infinity) return 0;
+        if(insertedStream.viewersSortingInsertionIndex == 0) return Infinity;
         return container.childNodes.length - insertedStream.viewersSortingInsertionIndex;
     }
     if(insertedStream.sortingField === "Viewers" && insertedStream.sortingDirection === "asc") {
         if(container.childNodes.length == insertedStream.viewersSortingInsertionIndex) return Infinity;
         return insertedStream.viewersSortingInsertionIndex;
+    }
+
+    if(insertedStream.sortingField === "Channel name" && insertedStream.sortingDirection === "desc") {
+        if(insertedStream.channelNameSortingInsertionIndex == Infinity) return 0;
+        if(insertedStream.channelNameSortingInsertionIndex == 0) return Infinity;
+        return container.childNodes.length - insertedStream.channelNameSortingInsertionIndex;
+    }
+    if(insertedStream.sortingField === "Channel name" && insertedStream.sortingDirection === "asc") {
+        if(container.childNodes.length == insertedStream.channelNameSortingInsertionIndex) return Infinity;
+        return insertedStream.channelNameSortingInsertionIndex;
+    }
+
+    if(insertedStream.sortingField === "Game" && insertedStream.sortingDirection === "desc") {
+        if(insertedStream.gameNameSortingInsertionIndex == Infinity) return 0;
+        if(insertedStream.gameNameSortingInsertionIndex == 0) return Infinity;
+        return container.childNodes.length - insertedStream.gameNameSortingInsertionIndex;
+    }
+    if(insertedStream.sortingField === "Game" && insertedStream.sortingDirection === "asc") {
+        if(container.childNodes.length == insertedStream.gameNameSortingInsertionIndex) return Infinity;
+        return insertedStream.gameNameSortingInsertionIndex;
     }
 }
 
@@ -133,6 +152,8 @@ function updateEventListeners() {
         })();
 
         let channelImageList = link.getElementsByClassName("channel_image");
+        if(channelImageList == null || channelImageList.length == 0)
+            continue;
         let channelImage = channelImageList[0];
         channelImage.onload = (function() {
             let frameId = link.id;
