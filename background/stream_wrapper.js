@@ -11,7 +11,9 @@ function compileLiveStreamData(compilationParameters){
         },
         streamFrame: `
             <a href="#" class="stream_link" id="${uuid}">
-                ${buildStreamFrame(compilationParameters)}
+                <div class="stream_link_wrapper">
+                    ${buildStreamFrame(compilationParameters)}
+                </div>
             </a>`
     };
 }
@@ -46,9 +48,16 @@ function buildLowerFramePart(compilationParameters) {
 }
 
 function buildStreamInformationFrame(compilationParameters) {
+    let channelTitle = "";
+    if(compilationParameters.data.channelTitle.length > 80){
+        channelTitle = compilationParameters.data.channelTitle.substring(0, 80) + "...";
+    } else {
+        channelTitle = compilationParameters.data.channelTitle;
+    }
+
     return `
         <div class="channel_game">${compilationParameters.data.game}</div>
-        <div class="channel_title">${compilationParameters.data.channelTitle}</div>`
+        <div class="channel_title">${channelTitle}</div>`
 }
 
 function buildStreamImageFrame(compilationParameters) {
