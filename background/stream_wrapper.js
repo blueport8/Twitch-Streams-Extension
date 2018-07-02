@@ -9,6 +9,9 @@ function compileLiveStreamData(compilationParameters){
             channelName: compilationParameters.data.channelName,
             gameName: compilationParameters.data.game
         },
+        misc: {
+            showThumbnails: compilationParameters.settings.thumbnailsEnabled
+        },
         streamFrame: `
             <a href="#" class="stream_link" id="${uuid}">
                 <div class="stream_link_wrapper">
@@ -49,8 +52,10 @@ function buildLowerFramePart(compilationParameters) {
 
 function buildStreamInformationFrame(compilationParameters) {
     let channelTitle = "";
-    if(compilationParameters.data.channelTitle.length > 80){
+    if(compilationParameters.settings.thumbnailsEnabled == true && compilationParameters.data.channelTitle.length > 80) {
         channelTitle = compilationParameters.data.channelTitle.substring(0, 80) + "...";
+    } else if (compilationParameters.settings.thumbnailsEnabled == false && compilationParameters.data.channelTitle.length > 120){
+        channelTitle = compilationParameters.data.channelTitle.substring(0, 120) + "...";
     } else {
         channelTitle = compilationParameters.data.channelTitle;
     }

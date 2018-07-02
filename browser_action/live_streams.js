@@ -12,8 +12,13 @@ function updateLiveStreams() {
     container.innerHTML = ``;
     for (var streamIndex = 0; streamIndex < letLiveStreamList.length; streamIndex++) {
         const element = letLiveStreamList[streamIndex];
-        const parsingResults = parseStreamFrame(element.streamFrame);
-        container.appendChild(parsingResults[0]);
+        const parsingResults = parseStreamFrame(element.streamFrame)[0];
+        if(element.misc.showThumbnails == true) {
+            addImageFadeInEffect(parsingResults);
+        } else {
+            hideThumbnails(parsingResults);
+        }
+        container.appendChild(parsingResults);
     }
     updateEventListeners();
 }
@@ -41,9 +46,11 @@ function handleStreamUpdate(updatedStream) {
     let insertionIndex = getInsertionIndex(updatedStream, container);
     console.log("Insertion index: " + insertionIndex);
     const streamLinkFrame = parseStreamFrame(updatedStream.compiledStream.streamFrame)[0];
-    addImageFadeInEffect(streamLinkFrame);
-
-    
+    if(updatedStream.compiledStream.misc.showThumbnails == true) {
+        addImageFadeInEffect(streamLinkFrame);
+    } else {
+        hideThumbnails(streamLinkFrame);
+    }
 
     if(insertionIndex !== Infinity) {
         //console.log("Updating - insertion index: " + insertionIndex);
@@ -62,7 +69,12 @@ function handleStreamInsert(insertedStream) {
     let container = getContainer();
     const streamLinkFrame = parseStreamFrame(insertedStream.compiledStream.streamFrame)[0];
     let insertionIndex = getInsertionIndex(insertedStream, container);
-    addImageFadeInEffect(streamLinkFrame);
+    if(insertedStream.compiledStream.misc.showThumbnails == true) {
+        addImageFadeInEffect(streamLinkFrame);
+    } else {
+        hideThumbnails(streamLinkFrame);
+    }
+
     if(insertionIndex !== Infinity) {
         //console.log("Inserting - insertion index: " + insertionIndex);
         //console.log("Streams on view: " + container.childNodes.length);
@@ -77,6 +89,13 @@ function parseStreamFrame(streamFrame) {
     const parser = new DOMParser();
     const parsed = parser.parseFromString(streamFrame, `text/html`);
     return parsed.getElementsByTagName("a");
+}
+
+function hideThumbnails(streamLinkFrame) {
+    var informationFrame = streamLinkFrame.getElementsByClassName("live_stream_information_frame")[0];
+    informationFrame.style.width = '100%';
+    var informationFrame = streamLinkFrame.getElementsByClassName("stream_link_wrapper")[0];
+    informationFrame.style.height = '75px';
 }
 
 function addImageFadeInEffect(tag) {
@@ -148,17 +167,6 @@ function updateEventListeners() {
             let local_channel_name = channel_name.innerHTML;
             return () => {
                 openStream(local_channel_name);
-            }
-        })();
-
-        let channelImageList = link.getElementsByClassName("channel_image");
-        if(channelImageList == null || channelImageList.length == 0)
-            continue;
-        let channelImage = channelImageList[0];
-        channelImage.onload = (function() {
-            let frameId = link.id;
-            return () => {
-                changeOpacityFadeIn(frameId);
             }
         })();
     }
