@@ -51,6 +51,7 @@ function handleStreamUpdate(updatedStream) {
     } else {
         hideThumbnails(streamLinkFrame);
     }
+    addStreamOnClickListener(streamLinkFrame, updatedStream.compiledStream.channelName);
 
     if(insertionIndex !== Infinity) {
         //console.log("Updating - insertion index: " + insertionIndex);
@@ -74,6 +75,7 @@ function handleStreamInsert(insertedStream) {
     } else {
         hideThumbnails(streamLinkFrame);
     }
+    addStreamOnClickListener(streamLinkFrame, insertedStream.compiledStream.channelName);
 
     if(insertionIndex !== Infinity) {
         //console.log("Inserting - insertion index: " + insertionIndex);
@@ -89,6 +91,15 @@ function parseStreamFrame(streamFrame) {
     const parser = new DOMParser();
     const parsed = parser.parseFromString(streamFrame, `text/html`);
     return parsed.getElementsByTagName("a");
+}
+
+function addStreamOnClickListener(streamLinkFrame, channelName) {
+    streamLinkFrame.onclick = (function() {
+        let localChannelName = channelName;
+        return () => {
+            openStream(localChannelName);
+        }
+    })();
 }
 
 function hideThumbnails(streamLinkFrame) {
@@ -115,16 +126,16 @@ function getContainer() {
 
 function removeStream(uuid) {
     let streamToRemove = document.getElementById(uuid);
-    console.log(streamToRemove);
+    //console.log(streamToRemove);
     if(streamToRemove != null) {
         streamToRemove.parentNode.removeChild(streamToRemove);
     }
 }
 
 function getInsertionIndex(insertedStream, container) {
-    console.log("Soring field: " + insertedStream.sortingField);
-    console.log("Sorting direction: " + insertedStream.sortingDirection);
-    console.log(insertedStream);
+    //console.log("Soring field: " + insertedStream.sortingField);
+    //console.log("Sorting direction: " + insertedStream.sortingDirection);
+    //console.log(insertedStream);
     if(insertedStream.sortingField === "Viewers" && insertedStream.sortingDirection === "desc") {
         if(insertedStream.viewersSortingInsertionIndex == Infinity) return 0;
         if(insertedStream.viewersSortingInsertionIndex == 0) return Infinity;
