@@ -97,27 +97,34 @@ function getUsername() {
 }
 
 function getLiveStreams() {
+    console.time('getLiveStreams_latency');
     const sortingDirection = settingsAPI.sorting_direction;
     const sortingField = settingsAPI.sorting_field;
     if(sortingField == "Viewers") {
         if(sortingDirection === "asc") {
+            console.timeEnd('getLiveStreams_latency');
             return compiledStreams.streamsSortedByViewers;
         }
         // Descending
+        console.timeEnd('getLiveStreams_latency');
         return compiledStreams.streamsSortedByViewers.slice().reverse();
     }
     if(sortingField == "Channel name") {
         if(sortingDirection === "asc") {
+            console.timeEnd('getLiveStreams_latency');
             return compiledStreams.streamsSortedByChannelName;
         }
         // Descending
+        console.timeEnd('getLiveStreams_latency');
         return compiledStreams.streamsSortedByChannelName.slice().reverse();
     }
     if(sortingField == "Game") {
         if(sortingDirection === "asc") {
+            console.timeEnd('getLiveStreams_latency');
             return compiledStreams.streamsSortedByGame;
         }
         // Descending
+        console.timeEnd('getLiveStreams_latency');
         return compiledStreams.streamsSortedByGame.slice().reverse();
     }
 }

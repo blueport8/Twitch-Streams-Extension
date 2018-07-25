@@ -97,8 +97,9 @@ let twitchAPI = {
         },
         handleStreamUpdate: function(liveStreamIndex, updatedChannel) {
             // Update compiled streams list
+            console.time('Updating stream: ' + updatedChannel.stream.channel.name + ', latency');
             let updateResult = compiledStreams.handleStreamUpdate(updatedChannel);
-            console.log("Updating: " + updateResult.compiledStream.channelName);
+            //console.log("Updating: " + updateResult.compiledStream.channelName);
             if(updateResult.success == true) {
                 let channelToUpdate = session.live[liveStreamIndex];
                 // Update backend session stream object
@@ -106,12 +107,13 @@ let twitchAPI = {
                 // If extension popup is currently opened send a message to update UI
                 if(popup_state_handler.popup_opened) browser.runtime.sendMessage({ "subject": "update_stream_on_the_view", "data": updateResult });
             }
+            console.timeEnd('Updating stream: ' + updatedChannel.stream.channel.name + ', latency');
         },
         handleNewStream: function(newLiveStream) {
             // Compile new stream on the list
-            console.log("Insert");
+            console.time('Inserting stream: ' + newLiveStream.stream.channel.name + ', latency');
             let insertResult = compiledStreams.handleStreamInsert(newLiveStream);
-            console.log("Inserting: " + insertResult.compiledStream.channelName);
+            //console.log("Inserting: " + insertResult.compiledStream.channelName);
             if(insertResult.success == true) {
                 // Insert new stream to the backend session object
                 session.live.push(newLiveStream);
@@ -125,6 +127,7 @@ let twitchAPI = {
                     browser.runtime.sendMessage({ "subject": "update_live_follows_count" });
                 } 
             }
+            console.timeEnd('Inserting stream: ' + newLiveStream.stream.channel.name + ', latency');
         },
         notLoaded: (error) => {
             //var parsedError = JSON.parse(error);
