@@ -28,6 +28,8 @@
     },
 
     "background": {
-        "scripts": ["background/stream_wrapper.js","background/background.js"]
+        "scripts": ["background/stream_wrapper.js", "background/settings.js", "background/passive_update.js",
+                    "background/notification_engine.js", "background/stream_compilation_handler.js",
+                    "background/twitch_api_handler.js", "background/background.js"]
     }
 }
