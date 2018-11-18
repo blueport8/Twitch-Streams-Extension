@@ -42,7 +42,7 @@ let application = {
                     twitchAPI.liveStream.processResult(parsedResponse.follows);
                 });
             }
-            notificationEngine.start();
+            notificationEngine.init();
         });
     }
 }

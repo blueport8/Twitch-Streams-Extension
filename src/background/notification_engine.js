@@ -1,51 +1,66 @@
-
-let notificationEngine = {
+var notificationEngine = {
     toNotify: [],
-    start: () => {
-        setInterval(notificationEngine.handler, 10000);
-    },
-    handler: () => {
-        if(!settingsAPI.notifications_enabled) {
-            notificationEngine.toNotify = [];
-            return;
-        }
-        if (notificationEngine.toNotify.length > 1) {
-            let live_to_show = "";
-            let names_to_add = 5;
-            if (notificationEngine.toNotify.length < 5) {
-                names_to_add = notificationEngine.toNotify.length
-            }
-            for (var i = names_to_add - 1; i >= 0; i--) {
-                live_to_show += notificationEngine.toNotify[i] + ", ";
-            }
-            live_to_show = live_to_show.substring(0, live_to_show.length - 1);
 
-            let channel = notificationEngine.toNotify[0];
-            let live = notificationEngine.toNotify.length - names_to_add;
-            let message = "";
-            if(live > 0){
-                message = live_to_show + " and " + live + " other channels are live.";
-            } else {
-                message = live_to_show + " are live."
-            }
-            browser.notifications.create({
-                "type": "basic",
-                "iconUrl": browser.extension.getURL("icons/twitch-48.png"),
-                "title": "Twitch streams",
-                "message": message
-            });
-            notificationEngine.toNotify = [];
+    init: function() {
+        setInterval(this.handler, 10000, this);
+    },
+
+    handler: function(self) {
+        if(self.toNotify.length == 0)
+            return;
+        if(!self.notificationsEnabled(self))
+            return
+
+        if(self.toNotify.length == 1)
+            return self.notifySingle(self);
+        return self.notifyMany(self);
+    },
+
+    notificationsEnabled: function(self) {
+        if(settingsAPI.notifications_enabled)
+            return true;
+
+        self.toNotify = [];
+        return false;
+    },
+
+    notifySingle: function(self) {
+        let channel = self.toNotify[0];
+        let numOfOtherLiveChannels = self.toNotify.length - 1;
+        browser.notifications.create({
+            "type": "basic",
+            "iconUrl": browser.extension.getURL("icons/twitch-48.png"),
+            "title": "Twitch streams",
+            "message": "Channel " + channel + " went numOfOtherLiveChannels."
+        });
+        self.toNotify = [];
+    },
+
+    notifyMany: function(self) {
+        let channelNames = "";
+        let channelsToNotify = self.toNotify.length < 5 ? (self.toNotify.length - 1) : 4;
+
+        while(channelsToNotify >= 0) {
+            channelNames += self.toNotify[channelsToNotify] + ", ";
+            channelsToNotify--;
         }
-        else if (notificationEngine.toNotify.length == 1) {
-            let channel = notificationEngine.toNotify[0];
-            let live = notificationEngine.toNotify.length - 1;
-            browser.notifications.create({
-                "type": "basic",
-                "iconUrl": browser.extension.getURL("icons/twitch-48.png"),
-                "title": "Twitch streams",
-                "message": "Channel " + channel + " is live."
-            });
-            notificationEngine.toNotify = [];
+        channelNames = channelNames.substring(0, channelNames.length - 1);
+
+        let numOfOtherLiveChannels = self.toNotify.length - channelsToNotify;
+        let notifMessage = "";
+        if(numOfOtherLiveChannels > 0){
+            notifMessage = channelNames 
+                + " and " + numOfOtherLiveChannels 
+                + " other channels are live.";
+        } else {
+            notifMessage = channelNames + " are live."
         }
+        browser.notifications.create({
+            "type": "basic",
+            "iconUrl": browser.extension.getURL("icons/twitch-48.png"),
+            "title": "Twitch streams",
+            "message": notifMessage
+        });
+        self.toNotify = [];
     }
 }
