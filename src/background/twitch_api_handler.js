@@ -118,7 +118,11 @@ let twitchAPI = {
                 // Insert new stream to the backend session object
                 session.live.push(newLiveStream);
                 // Insert channel name into notification engine queue
-                notificationEngine.toNotify.push(insertResult.compiledStream.channelName);
+                var notif = {
+                    img: newLiveStream.stream.channel.logo,
+                    channelName: insertResult.compiledStream.channelName
+                };
+                notificationEngine.toNotify.push(notif);
                 // Update extension icon live stream count
                 twitchAPI.liveStream.updateBadge();
                 // If extension popup is currently opened send a message to update UI
