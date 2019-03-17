@@ -1,5 +1,10 @@
 
 let settingsAPI = {
+    settingKeys: 
+        ["twitchStreamsUserName", "twitchStreamsSortingField",
+        "twitchStreamsSortingDirection", "twitchStreamsNotificationsEnabled",
+        "twitchStreamsThumbnailsEnabled"],
+
     // Foreground
     username_cached: "",
     sorting_field: "Viewers",

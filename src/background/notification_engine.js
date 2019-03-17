@@ -1,66 +1,89 @@
+"use strict"
+
 var notificationEngine = {
-    toNotify: [],
+  toNotify: [],
 
-    init: function() {
-        setInterval(this.handler, 10000, this);
-    },
+  init: function() {
+    setInterval(this.handler, 10000, this);
+  },
 
-    handler: function(self) {
-        if(self.toNotify.length == 0)
-            return;
-        if(!self.notificationsEnabled(self))
-            return
+  handler: function(self) {
+    if(!self.canHandle(self)) {
+      self.cleanup(self);
+      return;
+    } 
 
-        if(self.toNotify.length == 1)
-            return self.notifySingle(self);
-        return self.notifyMany(self);
-    },
+    if(self.toNotify.length == 1)
+      return self.notifySingle(self);
+    return self.notifyMany(self);
+  },
 
-    notificationsEnabled: function(self) {
-        if(settingsAPI.notifications_enabled)
-            return true;
+  execute: function(self) {
+    let pending = self.toNotify.length;
+    if (pending == 1)
+      self.notifySingle(self);
+    else if (pending > 1 && pending <= 5 )
+      self.notifyFew(self);
+    else
+      self.notifyMany(self);
+  },
 
-        self.toNotify = [];
-        return false;
-    },
+  canHandle: function(self) {
+    if(self.toNotify.length == 0)
+      return false;
+    if(!settingsAPI.notifications_enabled)
+      return false;
+    return true;
+  },
 
-    notifySingle: function(self) {
-        let notif = self.toNotify[0];
-        let otherLiveChannels = self.toNotify.length - 1;
-        browser.notifications.create({
-            "type": "basic",
-            "iconUrl": browser.extension.getURL(notif.img),
-            "title": "Twitch streams",
-            "message": "Channel " + notif.channelName + " went live."
-        });
-        self.toNotify = [];
-    },
+  cleanup: function(self) {
+    self.toNotify = [];
+  },
 
-    notifyMany: function(self) {
-        let channelNames = "";
-        let channelsToNotify = self.toNotify.length < 5 ? (self.toNotify.length - 1) : 4;
+  notifySingle: function(self) {
+    const title = "Twitch streams";
+    let notif = self.toNotify[0];
+    let streamUrl = browser.runtime.getURL(notif.img);
+    let message = `${notif.channelName} is live.`;
 
-        while(channelsToNotify >= 0) {
-            channelNames += self.toNotify[channelsToNotify].channelName + ", ";
-            channelsToNotify--;
-        }
-        channelNames = channelNames.substring(0, channelNames.length - 1);
+    self.displayNotification(streamUrl, title, message);
+    self.cleanup(self);
+  },
 
-        let otherLiveChannels = self.toNotify.length - channelsToNotify;
-        let notifMessage = "";
-        if(otherLiveChannels > 0){
-            notifMessage =  
-                channelNames + " and " + 
-                otherLiveChannels + " other channels are live.";
-        } else {
-            notifMessage = channelNames + " are live."
-        }
-        browser.notifications.create({
-            "type": "basic",
-            "iconUrl": browser.extension.getURL("icons/twitch-notif-48.jpg"),
-            "title": "Twitch streams",
-            "message": notifMessage
-        });
-        self.toNotify = [];
+  notifyFew: function(self) {
+    const title = "Twitch streams";
+    let streamUrl = browser.runtime.getURL("icons/twitch-notif-48.jpg");
+    let message = self.buildMessageFew(self.toNotify);
+    self.displayNotification(streamUrl, title, message);
+    self.cleanup(self);
+  },
+
+  notifyMany: function(self) {
+    const title = "Twitch streams";
+    let channels = self.toNotify.length;
+    let streamUrl = browser.runtime.getURL("icons/twitch-notif-48.jpg");
+    let message = `${channels} channels are live.`;
+
+    self.displayNotification(streamUrl, title, message);
+    self.cleanup(self);
+  },
+
+  buildMessageFew: function(notifications) {
+    let message = "";
+    for (var notifIdx = 0; notifIdx < notifications.length; notifIdx++) {
+      message += notifications[notifIdx];
+      if(notifIdx != notifications.length - 1)
+        message += ", ";
     }
+    message += " are live.";
+  },
+
+  displayNotification: function(imgUrl, title, message) {
+    browser.notifications.create({
+      "type": "basic",
+      "iconUrl": imgUrl,
+      "title": title,
+      "message": message
+    });
+  }
 }
