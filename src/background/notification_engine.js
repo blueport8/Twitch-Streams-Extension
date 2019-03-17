@@ -11,11 +11,9 @@ var notificationEngine = {
     if(!self.canHandle(self)) {
       self.cleanup(self);
       return;
-    } 
+    }
 
-    if(self.toNotify.length == 1)
-      return self.notifySingle(self);
-    return self.notifyMany(self);
+    self.execute(self);
   },
 
   execute: function(self) {
@@ -44,7 +42,7 @@ var notificationEngine = {
     const title = "Twitch streams";
     let notif = self.toNotify[0];
     let streamUrl = browser.runtime.getURL(notif.img);
-    let message = `${notif.channelName} is live.`;
+    let message = self.buildMessageSingle(self, notif);
 
     self.displayNotification(streamUrl, title, message);
     self.cleanup(self);
@@ -53,29 +51,54 @@ var notificationEngine = {
   notifyFew: function(self) {
     const title = "Twitch streams";
     let streamUrl = browser.runtime.getURL("icons/twitch-notif-48.jpg");
-    let message = self.buildMessageFew(self.toNotify);
+    let message = self.buildMessageFew(self, self.toNotify);
     self.displayNotification(streamUrl, title, message);
     self.cleanup(self);
   },
 
   notifyMany: function(self) {
     const title = "Twitch streams";
-    let channels = self.toNotify.length;
     let streamUrl = browser.runtime.getURL("icons/twitch-notif-48.jpg");
-    let message = `${channels} channels are live.`;
+    let message = self.buildMessageMany(self, self.toNotify);
 
     self.displayNotification(streamUrl, title, message);
     self.cleanup(self);
   },
 
-  buildMessageFew: function(notifications) {
+  buildMessageSingle: function(self, notification) {
+    var uptimeMs = uptimeHelper.getUptimeMs(notification.channelUptime);
+    var hyphen = self.determineHyphen(uptimeMs);
+    
+    return `Channel ${notif.channelName} ${hyphen} live.`;
+  },
+
+  buildMessageFew: function(self, notifications) {
     let message = "";
     for (var notifIdx = 0; notifIdx < notifications.length; notifIdx++) {
-      message += notifications[notifIdx];
+      message += notifications[notifIdx].channelName;
       if(notifIdx != notifications.length - 1)
         message += ", ";
     }
-    message += " are live.";
+    var highestUptimeMs = uptimeHelper.getHighestUptimeMs(notifications);
+    var hyphen = self.determineHyphen(uptimeMs, true);
+
+    message += ` ${hyphen} live.`;
+  },
+
+  buildMessageMany: function(self, notifications) {
+    var highestUptimeMs = uptimeHelper.getHighestUptimeMs(notifications);
+    var hyphen = self.determineHyphen(highestUptimeMs, true);
+    let channels = notifications.length;
+
+    return `${channels} followed channels ${hyphen} live.`;
+  },
+
+  determineHyphen: function(uptimeMs, many) {
+    if(uptimeMs < 600000) // 10 minutes
+      return "went";
+    if(many)
+      return "are";
+    return "is";
   },
 
   displayNotification: function(imgUrl, title, message) {
@@ -86,4 +109,22 @@ var notificationEngine = {
       "message": message
     });
   }
-}
+};
+
+var uptimeHelper = {
+  getUptimeMs: function(date_str) {
+    let date = new Date(date_str);
+    return new Date().valueOf() - date.valueOf();
+  },
+
+  getHighestUptimeMs: function(notifications) {
+    var highestUptimeMs = 0;
+    for (var notifIdx = 0; notifIdx < notifications.length; notifIdx++) {
+      var uptime = uptimeHelper.getUptimeMs(notifications[notifIdx].channelUptime);
+      if(highestUptimeMs < uptime){
+        highestUptimeMs = uptime;
+      }
+    }
+    return highestUptimeMs;
+  }
+};

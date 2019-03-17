@@ -120,7 +120,8 @@ let twitchAPI = {
                 // Insert channel name into notification engine queue
                 var notif = {
                     img: newLiveStream.stream.channel.logo,
-                    channelName: insertResult.compiledStream.channelName
+                    channelName: insertResult.compiledStream.channelName,
+                    channelUptime: newLiveStream.stream.created_at
                 };
                 notificationEngine.toNotify.push(notif);
                 // Update extension icon live stream count
