@@ -6,6 +6,7 @@ let twitchAPI = {
             var xhr = new XMLHttpRequest();
             xhr.open("GET", url);
             xhr.setRequestHeader("Client-ID", API_CLIENT_ID);
+            xhr.setRequestHeader("Accept", "application/vnd.twitchtv.v5+json");
             xhr.onload = resolve;
             xhr.onerror = reject;
             xhr.send();
@@ -15,52 +16,60 @@ let twitchAPI = {
         var xhr = new XMLHttpRequest();
         xhr.open("GET", url, false);
         xhr.setRequestHeader("Client-ID", API_CLIENT_ID);
+        xhr.setRequestHeader("Accept", "application/vnd.twitchtv.v5+json");
         xhr.send();
         if(xhr.status === 200)
             return xhr.responseText;
         else
             return "";
     },
-    follows: {
-        createUrl: (requestDetails) => {
-            return `https://api.twitch.tv/kraken/users/${requestDetails.username}/follows/channels?direction=DESC&limit=25&offset=${requestDetails.offset}&sortby=created_at&user=${requestDetails.username}`;
+    id: {
+        createUrl: (username) => {
+            return `https://api.twitch.tv/kraken/users?login=${username}`;
         },
         parse: (response) => {
-            var parsedResponse = JSON.parse(response);
-            return parsedResponse
-        },
-        process: (parsedResponse) => {
-            session.username = settingsAPI.username_cached;
-            session.followsCount = parsedResponse._total;
-            parsedResponse.follows.forEach((stream) => {
-                let channelFound = session.follows.find(channel => channel._links.self == stream._links.self)
-                if(channelFound === undefined)
-                    session.follows.push(stream);
-            });
-            browser.runtime.sendMessage({ "subject": "update_live_follows_count" });
+            return JSON.parse(response);
         }
     },
-    liveStream: {
-        createUrl: (channelName) => {
-            return `https://api.twitch.tv/kraken/streams/${channelName}`;
+    follows: {
+        createUrl: (requestDetails) => {
+            return `https://api.twitch.tv/kraken/users/${requestDetails.userID}/follows/channels?direction=DESC&limit=25&offset=${requestDetails.offset}&sortby=created_at&user=${requestDetails.username}`;
         },
-        processResult: function(follows) {
+        parse: (response) => {
+            return JSON.parse(response);
+        },
+    },
+    liveStream: {
+        createUrl: (channelID) => {
+            return `https://api.twitch.tv/kraken/streams/${channelID}`;
+        },
+        processResult: function (follows) {
+            if(!follows) {
+                console.log("livestream:processResult follows is undefined");
+                return;
+            }
             follows.forEach(stream => {
-                var channelIndex = session.follows.findIndex(channel => channel._links.self == stream._links.self)
+                var channelIndex = session.follows.findIndex(channel => {
+                    return channel.channel.url == stream.channel.url;
+                });
                 if(channelIndex == -1)
                     session.follows.push(stream);
-                var channelUrl = twitchAPI.liveStream.createUrl(stream.channel.name);
+                var channelUrl = twitchAPI.liveStream.createUrl(stream.channel._id);
                 twitchAPI.getAsync(channelUrl)
-                .then(twitchAPI.liveStream.loaded,twitchAPI.liveStream.notLoaded);
+                    .then(result => twitchAPI.liveStream.loaded(result, channelUrl), twitchAPI.liveStream.notLoaded);
             });
         },
-        loaded: (result) => {
+        loaded: (result, channelUrl) => {
             var parsedResult = JSON.parse(result.explicitOriginalTarget.response);
+            // set url for comparison to fill in ._links.self that's missing in the v5 response
+            parsedResult._url = channelUrl;
             if(parsedResult.hasOwnProperty(status) && parsedResult.status != 200) {
                 console.log("Error while loading stream: " + parsedResult.error + " ,status: " + parsedResult.status);
                 return;
             }
-            let channelIndex = session.live.findIndex(channel => channel._links.self == parsedResult._links.self);
+            let channelIndex = session.live.findIndex(channel => {
+                return channel._url == parsedResult._url;
+            });
             if(channelIndex !== -1) { // On the list
                 if (parsedResult.stream === null) { // Offline - need to remove from list
                     twitchAPI.liveStream.handleStreamRemoval(channelIndex);
@@ -81,8 +90,6 @@ let twitchAPI = {
             let channelToRemove = session.live[liveStreamIndex];
             // Remove channel from compiled streams list
             let removalResult = compiledStreams.handleStreamRemove(channelToRemove);
-            console.log("Removing: ");
-            console.log(removalResult.removedStream);
             if(removalResult.success) {
                 // Remove offline channel from backend session object
                 session.live.splice(liveStreamIndex, 1);

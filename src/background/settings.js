@@ -7,6 +7,7 @@ let settingsAPI = {
 
     // Foreground
     username_cached: "",
+    userID_cached: "",
     sorting_field: "Viewers",
     sorting_direction: "desc",
     notifications_enabled: true,
@@ -19,6 +20,16 @@ let settingsAPI = {
         .then((data) => {
             settingsAPI.username_handler(data);
             return data;
+        })
+        .then((data) => {
+            return settingsAPI.userID_handler(data)
+                .then(() => {
+                    return data;
+                })
+                .catch((error) => {
+                    console.error("couldn't get userID");
+                    return data;
+                });
         })
         .then((data) => {
             settingsAPI.refresh_rate_handler(data);
@@ -53,12 +64,14 @@ let settingsAPI = {
         const userNameChanged = (settingsSnapshot.username !== session.username);
         const thumbnailsEnabledChanged = (settingsSnapshot.thumbnailsEnabled !== this.thumbnails_enabled);
         browser.storage.sync.set({ "twitchStreamsUserName": settingsSnapshot.username });
+        browser.storage.sync.set({ "twitchStreamsUserID": settingsSnapshot.userID });
         browser.storage.sync.set({ "twitchStreamsSortingField": settingsSnapshot.sortingField });
         browser.storage.sync.set({ "twitchStreamsSortingDirection": settingsSnapshot.sortingDirection });
         browser.storage.sync.set({ "twitchStreamsNotificationsEnabled": settingsSnapshot.notificationsEnabled });
         browser.storage.sync.set({ "twitchStreamsThumbnailsEnabled": settingsSnapshot.thumbnailsEnabled });
         console.log("Succesfully set browser data");
         this.username_cached = settingsSnapshot.username;
+        this.userID_cached = settingsSnapshot.userID;
         this.sorting_field = settingsSnapshot.sortingField;
         this.sorting_direction = settingsSnapshot.sortingDirection;
         this.notifications_enabled = settingsSnapshot.notificationsEnabled;
@@ -83,6 +96,26 @@ let settingsAPI = {
         else {
             console.log("Username not found in browser data");
         }
+    },
+    userID_handler: function (data) {
+        // get cached usedID or request it if username is set
+        if (data.twitchStreamsUserID != null) {
+            this.userID_cached = data.twitchStreamsUserID;
+            session.userID = data.twitchStreamsUserID;
+            console.log(`Cached userID: ${data.twitchStreamsUserID}`);
+            return Promise.resolve();
+        }
+        else {
+            console.log("UserID not found in browser data");
+            if (session.username) {
+                return getUserID(session.username).then((id) => {
+                    console.log(`Found userID: ${id}`)
+                    this.userID_cached = id;
+                    session.userID = id;
+                })
+            }
+        }
+        return Promise.reject();
     },
     refresh_rate_handler: function(data) {
         if (data.twitchStreamsRefreshRate != null) {

@@ -7,7 +7,7 @@
             "request": "launch",
             "reAttach": true,
             "addonType": "addonSdk",
-            "addonPath": "${workspaceRoot}"
+            "addonPath": "${workspaceRoot}",
         }
     ]
 }

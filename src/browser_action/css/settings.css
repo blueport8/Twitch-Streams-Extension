@@ -95,6 +95,11 @@
     font-weight: 400;
 }
 
+#save_button_link.disabled .settings_button {
+    background-color: grey;
+    cursor: default;
+}
+
 .debug_row {
     display: flex;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;

@@ -112,12 +112,14 @@ function hideThumbnails(streamLinkFrame) {
 function addImageFadeInEffect(tag) {
     let channelImageList = tag.getElementsByClassName("channel_image");
     let channelImage = channelImageList[0];
-    channelImage.onload = (function() {
-        let frameId = tag.id;
-        return () => {
-            changeOpacityFadeIn(frameId);
-        }
-    })();
+    if(channelImage) {
+        channelImage.onload = (function() {
+            let frameId = tag.id;
+            return () => {
+                changeOpacityFadeIn(frameId);
+            }
+        })();
+    }
 }
 
 function getContainer() {
@@ -173,13 +175,14 @@ function updateEventListeners() {
         let link = links[linkIndex];
         let channel_name_list = link.getElementsByClassName("upper_channel_name");
         let channel_name = channel_name_list[0];
-
-        link.onclick = (function() {
-            let local_channel_name = channel_name.innerHTML;
-            return () => {
-                openStream(local_channel_name);
-            }
-        })();
+        if(channel_name) {
+            link.onclick = (function() {
+                let local_channel_name = channel_name.innerHTML;
+                return () => {
+                    openStream(local_channel_name);
+                }
+            })();
+        }
     }
 }
 

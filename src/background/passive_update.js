@@ -15,14 +15,21 @@ let passiveUpdateEngine = {
             var followedChannel = passiveUpdateEngine.slowUpdateQueue.follows[0];
             passiveUpdateEngine.slowUpdateQueue.follows.splice(0, 1);
             passiveUpdateEngine.followsProcessed.push(followedChannel);
-            var channelUrl = twitchAPI.liveStream.createUrl(followedChannel.channel.name);
+            var channelUrl = twitchAPI.liveStream.createUrl(followedChannel.channel._id);
             twitchAPI.getAsync(channelUrl)
-                .then(twitchAPI.liveStream.loaded,twitchAPI.liveStream.notLoaded);
+                .then(result => twitchAPI.liveStream.loaded(result, channelUrl), twitchAPI.liveStream.notLoaded)
+                .catch((error) => {
+                    console.error("every2seconds:getAsync failed:", error)
+                });
         }
     },
     every60secounds: () => {
         if(passiveUpdateEngine.slowUpdateQueue.followsUrls.length == 0) {
-            let requestData = { username: settingsAPI.username_cached, offset: 0 }
+            let requestData = {
+                username: settingsAPI.username_cached,
+                userID: settingsAPI.userID_cached,
+                offset: 0
+            }
             // Check if any data was processed in last run if so, update session follows count
             if(passiveUpdateEngine.followsProcessed.length > 0) {
                 session.follows = passiveUpdateEngine.followsProcessed;
@@ -39,9 +46,14 @@ let passiveUpdateEngine = {
         passiveUpdateEngine.slowUpdateQueue.followsUrls.splice(0, 1);
         twitchAPI.getAsync(followsUrl).then((response) => {
             let parsedResponse = twitchAPI.follows.parse(response.explicitOriginalTarget.response);
+            if (parsedResponse.hasOwnProperty(status) && parsedResponse.status !== 200) {
+                return Promise.reject(parsedResponse);
+            }
             parsedResponse.follows.forEach((channel) => {
                 passiveUpdateEngine.slowUpdateQueue.follows.push(channel);
             });
+        }).catch((error) => {
+            console.error("every60seconds:getAsync failed:", error)
         });
     }
 }

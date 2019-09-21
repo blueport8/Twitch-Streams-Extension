@@ -69,7 +69,7 @@ var notificationEngine = {
     var uptimeMs = uptimeHelper.getUptimeMs(notification.channelUptime);
     var hyphen = self.determineHyphen(uptimeMs);
     
-    return `Channel ${notif.channelName} ${hyphen} live.`;
+    return `Channel ${notification.channelName} ${hyphen} live.`;
   },
 
   buildMessageFew: function(self, notifications) {
