@@ -22,14 +22,28 @@ let application = {
     },
     fastUpdate: function() {
         // Get inital followers asynchronously
-        let requestUrl = twitchAPI.follows.createUrl({ username: settingsAPI.username_cached, offset: 0 });
+        if (!settingsAPI.userID_cached) {
+            // clear lists and don't update if we don't have a userID
+            session.follows = [];
+            session.live = [];
+            browser.runtime.sendMessage({ "subject": "update_live_follows_count" });
+            return;
+        }
+        let requestUrl = twitchAPI.follows.createUrl({
+            username: settingsAPI.username_cached,
+            userID: settingsAPI.userID_cached,
+            offset: 0
+        });
         twitchAPI.getAsync(requestUrl).then((response) => {
             let parsedResponse = twitchAPI.follows.parse(response.explicitOriginalTarget.response);
-            //console.log(parsedResponse);
+            if (parsedResponse.hasOwnProperty(status) && parsedResponse.status !== 200) {
+                return Promise.reject(parsedResponse);
+            }
             twitchAPI.liveStream.processResult(parsedResponse.follows);
             let requestDetails = {
                 getNext: (parsedResponse.follows.length > 0),
                 username: settingsAPI.username_cached,
+                userID: settingsAPI.userID_cached,
                 offset: parsedResponse.follows.length,
                 total: parsedResponse._total
             }
@@ -43,12 +57,15 @@ let application = {
                 });
             }
             notificationEngine.init();
+        }).catch((error) => {
+            console.error("fastUpdate:getAsync failed:", error)
         });
     }
 }
 
 let session = {
     username: "",
+    userID: "",
     followsCount: 0,
     follows: [],
     live: []
@@ -85,6 +102,7 @@ function saveSettings(settingsSnapshot) {
 function getSettings() {
     return {
         username: settingsAPI.username_cached,
+        userID: settingsAPI.userID_cached,
         sortingField: settingsAPI.sorting_field,
         sortingDirection: settingsAPI.sorting_direction,
         notificationsEnabled: settingsAPI.notifications_enabled,
@@ -94,6 +112,18 @@ function getSettings() {
 
 function getUsername() {
     return session.username;
+}
+
+function getUserID(username) {
+    return twitchAPI.getAsync(twitchAPI.id.createUrl(username)).then((response) => {
+        const parsedResponse = twitchAPI.id.parse(response.explicitOriginalTarget.response);
+        if (!parsedResponse.users || !parsedResponse.users.length) {
+            return Promise.reject("invalid username");
+        }
+        return parsedResponse.users[0]._id
+    }).catch((error) => {
+        console.log("couldn't get userID for username:", error);
+    });
 }
 
 function getLiveStreams() {

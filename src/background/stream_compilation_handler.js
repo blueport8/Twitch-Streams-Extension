@@ -66,7 +66,9 @@ let compiledStreams = {
         const sortingDirection = settingsAPI.sorting_direction;
         const sortingField = settingsAPI.sorting_field;
         let compiledStream = compiledStreams.compileStream(streamData);
-        let channelIndex = compiledStreams.streams.findIndex(stream => stream.channelName == compiledStream.channelName);
+        let channelIndex = compiledStreams.streams.findIndex(stream => {
+            return stream.channelName == compiledStream.channelName;
+        });
         if(channelIndex != null && channelIndex >= 0) {
             let oldStreamUuid = compiledStreams.streams[channelIndex].uuid;
             compiledStreams.streams[channelIndex] = compiledStream;
@@ -90,12 +92,15 @@ let compiledStreams = {
         };
     },
     handleStreamRemove: function(streamData) {
-        let channelIndex = compiledStreams.streams.findIndex(stream => stream.channelName == streamData.stream.channel.name);
-        let sortByViewersChannelIndex = this.streamsSortedByViewers.findIndex(stream => stream.channelName == streamData.stream.channel.name);
+        let channelIndex = compiledStreams.streams.findIndex(stream => {
+            return stream.channelName == streamData.stream.channel.name;
+        });
+        let sortByViewersChannelIndex = this.streamsSortedByViewers.findIndex(stream => {
+            return stream.channelName == streamData.stream.channel.name
+        });
         this.streamsSortedByViewers.splice(sortByViewersChannelIndex, 1);
         if(channelIndex != null && channelIndex >= 0) {
-            console.log("Removing stream:");
-            console.log(compiledStreams.streams[channelIndex]);
+            console.log(`Removing stream: ${compiledStreams.streams[channelIndex].channelName}`);
             return {
                 success: true,
                 removedStream: compiledStreams.streams.splice(channelIndex, 1)
